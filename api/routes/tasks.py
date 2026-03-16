@@ -7,6 +7,11 @@ from services.project_service import ProjectService
 
 router = APIRouter()
 
+@router.get("/", response_model=list[TaskResponse])
+def get_tasks(db: Session = Depends(get_db)):
+    service = TaskService(db)
+    return service.get_tasks()
+
 @router.post("/", response_model=TaskResponse)
 def create_task(task_in: TaskCreate, db: Session = Depends(get_db)):
     project_service = ProjectService(db)

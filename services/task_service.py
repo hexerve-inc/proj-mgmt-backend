@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy.orm import Session
 from models.task import Task
 from models.project import Project
@@ -9,7 +10,7 @@ class TaskService:
         self.db = db
 
     def generate_task_code(self, project_id: str) -> str:
-        # A simple generation strategy for task codes based on project id prefix + counts
+        # A generation strategy for task codes based on project id prefix + uuid
         project = self.db.query(Project).filter(Project.id == project_id).first()
         if not project:
             prefix = "TSK"
@@ -17,8 +18,11 @@ class TaskService:
             # Using the first 3 letters of the project name as a prefix, fallback to TSK
             prefix = project.name[:3].upper() if project.name else "TSK"
             
-        count = self.db.query(Task).filter(Task.project_id == project_id).count()
-        return f"{prefix}-{count + 1}"
+        short_id = uuid.uuid4().hex[:6].upper()
+        return f"{prefix}-{short_id}"
+
+    def get_tasks(self) -> list[Task]:
+        return self.db.query(Task).all()
 
     def create_task(self, task_in: TaskCreate) -> Task:
         task_code = self.generate_task_code(task_in.project_id)
