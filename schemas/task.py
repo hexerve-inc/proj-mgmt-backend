@@ -7,6 +7,7 @@ class TaskBase(BaseModel):
     description: Optional[str] = None
     status: TaskStatus = TaskStatus.TODO
     priority: Priority = Priority.MEDIUM
+    progress: int = 0
     assignee_id: Optional[str] = None
 
 class TaskCreate(TaskBase):
@@ -17,6 +18,7 @@ class TaskUpdate(BaseModel):
     description: Optional[str] = None
     status: Optional[TaskStatus] = None
     priority: Optional[Priority] = None
+    progress: Optional[int] = None
     assignee_id: Optional[str] = None
 
 class TaskResponse(TaskBase):

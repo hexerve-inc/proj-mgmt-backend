@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Enum, ForeignKey
+from sqlalchemy import Column, String, Enum, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 from core.database import Base
 import enum
@@ -25,9 +25,13 @@ class Task(Base):
     description = Column(String, nullable=True)
     status = Column(Enum(TaskStatus, name="task_status_enum"), default=TaskStatus.TODO, nullable=False)
     priority = Column(Enum(Priority, name="priority_enum"), default=Priority.MEDIUM, nullable=False)
+    progress = Column(Integer, default=0)
     
     project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     project = relationship("Project", back_populates="tasks")
+    
+    sprint_id = Column(String, ForeignKey("sprints.id", ondelete="SET NULL"), nullable=True)
+    sprint = relationship("Sprint", back_populates="tasks")
     
     assignee_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     assignee = relationship("User")

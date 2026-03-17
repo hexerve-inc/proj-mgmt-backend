@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Enum, ForeignKey
+from sqlalchemy import Column, String, Enum, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 from core.database import Base
 import enum
@@ -15,10 +15,15 @@ class Project(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
     status = Column(Enum(ProjectStatus, name="project_status_enum"), default=ProjectStatus.PLANNING, nullable=False)
-    team_id = Column(String, ForeignKey("teams.id", ondelete="CASCADE"), nullable=True) # Or nullable=False depending on logic
+    team_id = Column(String, ForeignKey("teams.id", ondelete="CASCADE"), nullable=True)
     client_id = Column(String, ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
     program_id = Column(String, ForeignKey("programs.id", ondelete="SET NULL"), nullable=True)
+    
+    progress = Column(Integer, default=0)
+    ai_confidence = Column(Integer, default=85)
+    risk_level = Column(String, default="low") # low, medium, high, critical
     
     tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
     team = relationship("Team", back_populates="projects")
