@@ -6,9 +6,9 @@ class ProjectBase(BaseModel):
     name: str
     description: Optional[str] = None
     status: ProjectStatus = ProjectStatus.PLANNING
-    progress: int = 0
-    ai_confidence: int = 85
-    risk_level: str = "low"
+    progress: Optional[int] = 0
+    ai_confidence: Optional[int] = 85
+    risk_level: Optional[str] = "low"
 
 class ProjectCreate(ProjectBase):
     pass

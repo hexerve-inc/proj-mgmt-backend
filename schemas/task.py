@@ -5,9 +5,9 @@ from models.task import TaskStatus, Priority
 class TaskBase(BaseModel):
     title: str
     description: Optional[str] = None
-    status: TaskStatus = TaskStatus.TODO
-    priority: Priority = Priority.MEDIUM
-    progress: int = 0
+    status: Optional[TaskStatus] = TaskStatus.TODO
+    priority: Optional[Priority] = Priority.MEDIUM
+    progress: Optional[int] = 0
     assignee_id: Optional[str] = None
 
 class TaskCreate(TaskBase):
@@ -23,7 +23,7 @@ class TaskUpdate(BaseModel):
 
 class TaskResponse(TaskBase):
     id: str
-    task_code: str
+    task_code: Optional[str] = None
     project_id: str
 
     class Config:
