@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 from models.task import TaskStatus, Priority
+from schemas.user import UserResponse
 
 class TaskBase(BaseModel):
     title: str
@@ -25,6 +26,7 @@ class TaskResponse(TaskBase):
     id: str
     task_code: Optional[str] = None
     project_id: str
+    assignee: Optional[UserResponse] = None
 
     class Config:
         from_attributes = True

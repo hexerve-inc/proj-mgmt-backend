@@ -14,7 +14,8 @@ class Project(Base):
     __tablename__ = "projects"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    name = Column(String, nullable=False)
+    name = Column(String, unique=True, nullable=False, index=True)
+    project_key = Column(String, unique=True, nullable=False, index=True)
     description = Column(String, nullable=True)
     status = Column(Enum(ProjectStatus, name="project_status_enum"), default=ProjectStatus.PLANNING, nullable=False)
     team_id = Column(String, ForeignKey("teams.id", ondelete="CASCADE"), nullable=True)

@@ -6,6 +6,7 @@ import enum
 
 class TaskStatus(str, enum.Enum):
     TODO = "TODO"
+    ASSIGNED = "ASSIGNED"
     IN_PROGRESS = "IN_PROGRESS"
     IN_REVIEW = "IN_REVIEW"
     DONE = "DONE"

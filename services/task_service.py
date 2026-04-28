@@ -1,6 +1,6 @@
 import uuid
-from sqlalchemy.orm import Session
-from models.task import Task
+from sqlalchemy.orm import Session, joinedload
+from models.task import Task, TaskStatus
 from models.project import Project
 from schemas.task import TaskCreate, TaskUpdate
 from typing import Optional
@@ -22,21 +22,26 @@ class TaskService:
         return f"{prefix}-{short_id}"
 
     def get_tasks(self) -> list[Task]:
-        return self.db.query(Task).all()
+        return self.db.query(Task).options(joinedload(Task.assignee)).all()
 
     def create_task(self, task_in: TaskCreate) -> Task:
         task_code = self.generate_task_code(task_in.project_id)
-        task = Task(**task_in.model_dump(), task_code=task_code)
+        task_data = task_in.model_dump()
+        
+        # If an assignee is provided, automatically set status to ASSIGNED if it's currently TODO
+        if task_data.get("assignee_id") and task_data.get("status") == TaskStatus.TODO:
+            task_data["status"] = TaskStatus.ASSIGNED
+            
+        task = Task(**task_data, task_code=task_code)
         self.db.add(task)
         self.db.commit()
-        self.db.refresh(task)
-        return task
+        return self.get_task(task.id)
 
     def get_tasks_for_project(self, project_id: str) -> list[Task]:
-        return self.db.query(Task).filter(Task.project_id == project_id).all()
+        return self.db.query(Task).filter(Task.project_id == project_id).options(joinedload(Task.assignee)).all()
 
     def get_task(self, task_id: str) -> Optional[Task]:
-        return self.db.query(Task).filter(Task.id == task_id).first()
+        return self.db.query(Task).filter(Task.id == task_id).options(joinedload(Task.assignee)).first()
 
     def update_task(self, task_id: str, task_in: TaskUpdate) -> Optional[Task]:
         task = self.get_task(task_id)
@@ -48,5 +53,4 @@ class TaskService:
             setattr(task, field, value)
             
         self.db.commit()
-        self.db.refresh(task)
-        return task
+        return self.get_task(task_id)
