@@ -9,6 +9,8 @@ class SprintBase(BaseModel):
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     velocity: Optional[int] = 0
+    project_id: Optional[str] = None
+
 
 class SprintCreate(SprintBase):
     pass

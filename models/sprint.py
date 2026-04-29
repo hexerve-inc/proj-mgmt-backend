@@ -13,5 +13,7 @@ class Sprint(Base):
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
     velocity = Column(Integer, default=0)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=True)
     
     tasks = relationship("Task", back_populates="sprint")
+
