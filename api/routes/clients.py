@@ -23,3 +23,19 @@ def get_client(client_id: str, db: Session = Depends(get_db)):
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
     return client
+
+@router.patch("/{client_id}", response_model=ClientResponse)
+def update_client(client_id: str, client_in: ClientUpdate, db: Session = Depends(get_db)):
+    service = ClientService(db)
+    client = service.update_client(client_id, client_in)
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    return client
+
+@router.delete("/{client_id}")
+def delete_client(client_id: str, db: Session = Depends(get_db)):
+    service = ClientService(db)
+    success = service.delete_client(client_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Client not found")
+    return {"message": "Client deleted successfully"}

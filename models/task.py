@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Enum, ForeignKey, Integer
+from sqlalchemy import Column, String, Enum, ForeignKey, Integer, Date
 from sqlalchemy.orm import relationship
 from core.database import Base
 import enum
@@ -28,6 +28,8 @@ class Task(Base):
     priority = Column(Enum(Priority, name="priority_enum"), default=Priority.MEDIUM, nullable=False)
     progress = Column(Integer, default=0)
     story_points = Column(Integer, nullable=True, default=0)
+    start_date = Column(Date, nullable=True)
+    due_date = Column(Date, nullable=True)
     
     project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
 

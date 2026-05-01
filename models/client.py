@@ -9,6 +9,11 @@ class Client(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String, nullable=False)
     email = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    company = Column(String, nullable=True)
+    type = Column(String, nullable=True, default="external") # external, internal
+    address = Column(String, nullable=True)
+    notes = Column(String, nullable=True)
     industry = Column(String, nullable=True)
     
     projects = relationship("Project", back_populates="client")

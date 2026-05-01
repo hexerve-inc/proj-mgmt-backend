@@ -1,3 +1,4 @@
+from datetime import date
 from pydantic import BaseModel
 from typing import Optional
 from models.task import TaskStatus, Priority
@@ -11,6 +12,8 @@ class TaskBase(BaseModel):
     progress: Optional[int] = 0
     story_points: Optional[int] = 0
     assignee_id: Optional[str] = None
+    start_date: Optional[date] = None
+    due_date: Optional[date] = None
 
 class TaskCreate(TaskBase):
     project_id: str
@@ -23,6 +26,8 @@ class TaskUpdate(BaseModel):
     progress: Optional[int] = None
     story_points: Optional[int] = None
     assignee_id: Optional[str] = None
+    start_date: Optional[date] = None
+    due_date: Optional[date] = None
 
 class TaskResponse(TaskBase):
     id: str
