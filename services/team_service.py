@@ -65,6 +65,18 @@ class TeamService:
             self.db.refresh(team)
         return team
 
+    def remove_member(self, team_id: str, user_id: str) -> Optional[Team]:
+        team = self.get_team(team_id)
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not team or not user:
+            return None
+
+        if user in team.members:
+            team.members.remove(user)
+            self.db.commit()
+            self.db.refresh(team)
+        return team
+
     def delete_team(self, team_id: str) -> bool:
         team = self.get_team(team_id)
         if not team:

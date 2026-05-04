@@ -32,6 +32,14 @@ def add_member(team_id: str, user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Team or User not found")
     return team
 
+@router.delete("/{team_id}/members/{user_id}", response_model=TeamResponse)
+def remove_member(team_id: str, user_id: str, db: Session = Depends(get_db)):
+    service = TeamService(db)
+    team = service.remove_member(team_id, user_id)
+    if not team:
+        raise HTTPException(status_code=400, detail="Team or User not found")
+    return team
+
 @router.patch("/{team_id}", response_model=TeamResponse)
 def update_team(team_id: str, team_in: TeamUpdate, db: Session = Depends(get_db)):
     service = TeamService(db)
