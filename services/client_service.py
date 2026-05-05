@@ -32,3 +32,12 @@ class ClientService:
         self.db.commit()
         self.db.refresh(client)
         return client
+
+    def delete_client(self, client_id: str) -> bool:
+        client = self.get_client(client_id)
+        if not client:
+            return False
+            
+        self.db.delete(client)
+        self.db.commit()
+        return True
