@@ -33,3 +33,23 @@ def get_task(task_id: str, db: Session = Depends(get_db)):
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
+
+@router.patch("/{task_id}", response_model=TaskResponse)
+def update_task(task_id: str, task_in: TaskUpdate, db: Session = Depends(get_db)):
+    service = TaskService(db)
+    task = service.update_task(task_id, task_in)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+@router.delete("/{task_id}")
+def delete_task(task_id: str, db: Session = Depends(get_db)):
+    service = TaskService(db)
+    task = service.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Actually perform the delete
+    db.delete(task)
+    db.commit()
+    return {"message": "Task deleted successfully"}

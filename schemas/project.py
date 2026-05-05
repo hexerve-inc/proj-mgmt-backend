@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import AliasChoices, BaseModel, Field
 from typing import Optional
 from models.project import ProjectStatus
 
@@ -11,10 +11,17 @@ class ProjectBase(BaseModel):
     risk_level: Optional[str] = "low"
 
 class ProjectCreate(ProjectBase):
-    pass
+    project_key: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("project_key", "key"),
+    )
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
+    project_key: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("project_key", "key"),
+    )
     description: Optional[str] = None
     status: Optional[ProjectStatus] = None
     progress: Optional[int] = None
@@ -23,6 +30,7 @@ class ProjectUpdate(BaseModel):
 
 class ProjectResponse(ProjectBase):
     id: str
+    project_key: str
 
     class Config:
         from_attributes = True

@@ -9,7 +9,10 @@ router = APIRouter()
 @router.post("/", response_model=ProjectResponse)
 def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
     service = ProjectService(db)
-    return service.create_project(project_in)
+    try:
+        return service.create_project(project_in)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 @router.get("/", response_model=list[ProjectResponse])
 def get_projects(db: Session = Depends(get_db)):

@@ -6,6 +6,7 @@ import enum
 
 class TaskStatus(str, enum.Enum):
     TODO = "TODO"
+    ASSIGNED = "ASSIGNED"
     IN_PROGRESS = "IN_PROGRESS"
     IN_REVIEW = "IN_REVIEW"
     DONE = "DONE"
@@ -26,8 +27,10 @@ class Task(Base):
     status = Column(Enum(TaskStatus, name="task_status_enum"), default=TaskStatus.TODO, nullable=False)
     priority = Column(Enum(Priority, name="priority_enum"), default=Priority.MEDIUM, nullable=False)
     progress = Column(Integer, default=0)
+    story_points = Column(Integer, nullable=True, default=0)
     
     project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+
     project = relationship("Project", back_populates="tasks")
     
     sprint_id = Column(String, ForeignKey("sprints.id", ondelete="SET NULL"), nullable=True)
