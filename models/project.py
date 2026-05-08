@@ -26,6 +26,7 @@ class Project(Base):
     progress = Column(Integer, default=0)
     ai_confidence = Column(Integer, default=85)
     risk_level = Column(String, default="low") # low, medium, high, critical
+    task_count = Column(Integer, default=0, nullable=False)
     tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
     team = relationship("Team", back_populates="projects")
     client = relationship("Client", back_populates="projects")

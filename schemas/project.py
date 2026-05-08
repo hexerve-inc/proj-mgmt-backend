@@ -14,6 +14,7 @@ class ProjectBase(BaseModel):
     end_date: Optional[date] = None
     client_id: Optional[str] = None
     team_id: Optional[str] = None
+    program_id: Optional[str] = None
 
 class ProjectCreate(ProjectBase):
     project_key: Optional[str] = Field(
@@ -36,10 +37,12 @@ class ProjectUpdate(BaseModel):
     end_date: Optional[date] = None
     client_id: Optional[str] = None
     team_id: Optional[str] = None
+    program_id: Optional[str] = None
 
 class ProjectResponse(ProjectBase):
     id: str
     project_key: str
+    task_count: int
 
     class Config:
         from_attributes = True

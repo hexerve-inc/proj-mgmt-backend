@@ -60,12 +60,45 @@ class ProjectService:
             return None
             
         update_data = project_in.model_dump(exclude_unset=True)
+        # Never allow name or project_key to be changed via update
+        update_data.pop("name", None)
+        update_data.pop("project_key", None)
         for field, value in update_data.items():
             setattr(project, field, value)
             
         self.db.commit()
         self.db.refresh(project)
         return project
+
+    def delete_project(self, project_id: str) -> None:
+        project = self.get_project(project_id)
+        if project:
+            self.db.delete(project)
+            self.db.commit()
+
+    def check_uniqueness(self, name: Optional[str] = None, project_key: Optional[str] = None) -> dict:
+        result = {"nameExists": False, "keyExists": False}
+        if name and name.strip():
+            normalized_name = name.strip()
+            existing_name = (
+                self.db.query(Project)
+                .filter(func.lower(Project.name) == normalized_name.lower())
+                .first()
+            )
+            if existing_name:
+                result["nameExists"] = True
+                
+        if project_key and project_key.strip():
+            normalized_key = project_key.strip()
+            existing_key = (
+                self.db.query(Project)
+                .filter(func.lower(Project.project_key) == normalized_key.lower())
+                .first()
+            )
+            if existing_key:
+                result["keyExists"] = True
+                
+        return result
 
     @staticmethod
     def _normalize_project_key(project_key: Optional[str], project_name: str) -> str:

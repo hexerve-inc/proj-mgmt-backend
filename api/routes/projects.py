@@ -19,6 +19,11 @@ def get_projects(db: Session = Depends(get_db)):
     service = ProjectService(db)
     return service.get_projects()
 
+@router.get("/validate", response_model=dict)
+def validate_project(name: str = None, project_key: str = None, db: Session = Depends(get_db)):
+    service = ProjectService(db)
+    return service.check_uniqueness(name, project_key)
+
 @router.get("/{project_id}", response_model=ProjectResponse)
 def get_project(project_id: str, db: Session = Depends(get_db)):
     service = ProjectService(db)
@@ -26,3 +31,20 @@ def get_project(project_id: str, db: Session = Depends(get_db)):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
+
+@router.patch("/{project_id}", response_model=ProjectResponse)
+def update_project(project_id: str, project_in: ProjectUpdate, db: Session = Depends(get_db)):
+    service = ProjectService(db)
+    project = service.update_project(project_id, project_in)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+@router.delete("/{project_id}", status_code=204)
+def delete_project(project_id: str, db: Session = Depends(get_db)):
+    service = ProjectService(db)
+    project = service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    service.delete_project(project_id)
+

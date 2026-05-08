@@ -13,7 +13,7 @@ class SprintBase(BaseModel):
 
 
 class SprintCreate(SprintBase):
-    pass
+    task_ids: Optional[List[str]] = None
 
 class SprintUpdate(SprintBase):
     name: Optional[str] = None
