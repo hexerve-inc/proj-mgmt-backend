@@ -10,23 +10,20 @@ class TaskService:
         self.db = db
 
     def generate_task_code(self, project_id: str) -> str:
-        # A generation strategy for task codes based on project id prefix + uuid
         project = self.db.query(Project).filter(Project.id == project_id).first()
         if not project:
-            prefix = "TSK"
-        else:
-            # Using the first 3 letters of the project name as a prefix, fallback to TSK
-            prefix = project.name[:3].upper() if project.name else "TSK"
+            return f"TSK-{uuid.uuid4().hex[:6].upper()}"
             
-        short_id = uuid.uuid4().hex[:6].upper()
-        return f"{prefix}-{short_id}"
+        project.task_count += 1
+        self.db.add(project)
+        return f"{project.project_key}-{project.task_count}"
 
     def get_tasks(self) -> list[Task]:
         return self.db.query(Task).options(joinedload(Task.assignee)).all()
 
     def create_task(self, task_in: TaskCreate) -> Task:
-        task_code = self.generate_task_code(task_in.project_id)
         task_data = task_in.model_dump()
+        task_code = self.generate_task_code(task_in.project_id)
         
         # If an assignee is provided, automatically set status to ASSIGNED if it's currently TODO
         if task_data.get("assignee_id") and task_data.get("status") == TaskStatus.TODO:

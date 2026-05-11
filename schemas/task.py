@@ -29,6 +29,7 @@ class TaskUpdate(BaseModel):
     assignee_id: Optional[str] = None
     start_date: Optional[date] = None
     due_date: Optional[date] = None
+    sprint_id: Optional[str] = None
 
 class TaskResponse(TaskBase):
     id: str

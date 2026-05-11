@@ -13,10 +13,19 @@ class SprintService:
 
     @staticmethod
     def create(db: Session, sprint: SprintCreate):
-        db_sprint = Sprint(**sprint.model_dump())
+        sprint_data = sprint.model_dump(exclude={"task_ids"})
+        db_sprint = Sprint(**sprint_data)
         db.add(db_sprint)
         db.commit()
         db.refresh(db_sprint)
+        
+        if sprint.task_ids:
+            from models.task import Task
+            db.query(Task).filter(Task.id.in_(sprint.task_ids)).update(
+                {Task.sprint_id: db_sprint.id}, synchronize_session=False
+            )
+            db.commit()
+            
         return db_sprint
 
     @staticmethod
