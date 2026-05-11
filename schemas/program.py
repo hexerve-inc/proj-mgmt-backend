@@ -6,7 +6,8 @@ class ProgramBase(BaseModel):
     description: Optional[str] = None
 
 class ProgramCreate(ProgramBase):
-    pass
+    portfolio_id: Optional[str] = None
+    project_ids: Optional[list[str]] = None
 
 class ProgramUpdate(BaseModel):
     name: Optional[str] = None
