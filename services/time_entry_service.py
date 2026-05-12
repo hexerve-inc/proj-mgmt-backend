@@ -11,7 +11,7 @@ class TimeEntryService:
         self.db = db
 
     def log_time(self, entry_in: TimeEntryCreate) -> Optional[TimeEntry]:
-        """Create a manual time entry (legacy flow). Duration is required."""
+        """Create a manual time entry. Calculates duration from start_at/end_at if provided."""
         # Validate that user exists
         user = self.db.query(User).filter(User.id == entry_in.user_id).first()
         if not user:
@@ -21,8 +21,28 @@ class TimeEntryService:
             task = self.db.query(Task).filter(Task.id == entry_in.task_id).first()
             if not task:
                 return None
-                
-        entry = TimeEntry(**entry_in.model_dump())
+        
+        data = entry_in.model_dump()
+        
+        # Calculate duration if start/end provided
+        if data.get('start_at') and data.get('end_at'):
+            start = data['start_at']
+            end = data['end_at']
+            if start.tzinfo is None:
+                start = start.replace(tzinfo=timezone.utc)
+            if end.tzinfo is None:
+                end = end.replace(tzinfo=timezone.utc)
+            
+            delta = end - start
+            data['duration'] = max(int(delta.total_seconds() / 60), 0)
+        
+        # Default date to now if not provided
+        if not data.get('date'):
+            data['date'] = datetime.now(timezone.utc)
+            
+        entry = TimeEntry(**data)
+        entry.is_running = False  # Manual entries are never running
+        
         self.db.add(entry)
         self.db.commit()
         self.db.refresh(entry)

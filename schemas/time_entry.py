@@ -8,9 +8,11 @@ class TimeEntryBase(BaseModel):
     task_id: Optional[str] = None
 
 class TimeEntryCreate(TimeEntryBase):
-    """Schema for manual time entry creation (legacy). user_id accepted for backward compat."""
-    duration: int  # Required for manual entries
+    """Schema for manual time entry creation."""
     user_id: str
+    start_at: Optional[datetime] = None
+    end_at: Optional[datetime] = None
+    duration: Optional[int] = None  # Optional, can be calculated from start/end
 
 class TimeEntryUpdate(BaseModel):
     duration: Optional[int] = None
