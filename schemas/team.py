@@ -12,6 +12,7 @@ class TeamCreate(TeamBase):
     project_manager_id: Optional[str] = None
     lead_id: Optional[str] = None
     product_manager_id: Optional[str] = None
+    scrum_master_id: Optional[str] = None
     member_ids: Optional[List[str]] = []
     project_ids: Optional[List[str]] = []
 
@@ -23,6 +24,7 @@ class TeamUpdate(BaseModel):
     project_manager_id: Optional[str] = None
     lead_id: Optional[str] = None
     product_manager_id: Optional[str] = None
+    scrum_master_id: Optional[str] = None
     member_ids: Optional[List[str]] = None
     project_ids: Optional[List[str]] = None
 
@@ -31,6 +33,7 @@ class TeamResponse(TeamBase):
     project_manager: Optional[UserResponse] = None
     lead: Optional[UserResponse] = None
     product_manager: Optional[UserResponse] = None
+    scrum_master: Optional[UserResponse] = None
     members: List[UserResponse] = []
     project_ids: List[str] = []
 

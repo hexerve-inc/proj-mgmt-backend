@@ -21,10 +21,12 @@ class Team(Base):
     project_manager_id = Column(String, ForeignKey('users.id', ondelete="SET NULL"), nullable=True)
     lead_id = Column(String, ForeignKey('users.id', ondelete="SET NULL"), nullable=True)
     product_manager_id = Column(String, ForeignKey('users.id', ondelete="SET NULL"), nullable=True)
+    scrum_master_id = Column(String, ForeignKey('users.id', ondelete="SET NULL"), nullable=True)
 
     project_manager = relationship("User", foreign_keys=[project_manager_id])
     lead = relationship("User", foreign_keys=[lead_id])
     product_manager = relationship("User", foreign_keys=[product_manager_id])
+    scrum_master = relationship("User", foreign_keys=[scrum_master_id])
     
     members = relationship("User", secondary=team_members, backref="teams")
     projects = relationship("Project", back_populates="team")
