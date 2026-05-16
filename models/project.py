@@ -28,6 +28,7 @@ class Project(Base):
     risk_level = Column(String, default="low") # low, medium, high, critical
     task_count = Column(Integer, default=0, nullable=False)
     tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
+    workflow_statuses = relationship("WorkflowStatus", back_populates="project", cascade="all, delete-orphan")
     team = relationship("Team", back_populates="projects")
     client = relationship("Client", back_populates="projects")
     program = relationship("Program", back_populates="projects")

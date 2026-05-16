@@ -1,13 +1,15 @@
 from datetime import date
 from pydantic import BaseModel
 from typing import Optional
-from models.task import TaskStatus, Priority
+from models.task import Priority
 from schemas.user import UserResponse
+from schemas.workflow_status import WorkflowStatusResponse
+
 
 class TaskBase(BaseModel):
     title: str
     description: Optional[str] = None
-    status: Optional[TaskStatus] = TaskStatus.TODO
+    status_id: Optional[str] = None
     priority: Optional[Priority] = Priority.MEDIUM
     progress: Optional[int] = 0
     story_points: Optional[int] = 0
@@ -16,13 +18,15 @@ class TaskBase(BaseModel):
     due_date: Optional[date] = None
     sprint_id: Optional[str] = None
 
+
 class TaskCreate(TaskBase):
     project_id: str
+
 
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    status: Optional[TaskStatus] = None
+    status_id: Optional[str] = None
     priority: Optional[Priority] = None
     progress: Optional[int] = None
     story_points: Optional[int] = None
@@ -31,11 +35,23 @@ class TaskUpdate(BaseModel):
     due_date: Optional[date] = None
     sprint_id: Optional[str] = None
 
-class TaskResponse(TaskBase):
+
+class TaskResponse(BaseModel):
     id: str
     task_code: Optional[str] = None
+    title: str
+    description: Optional[str] = None
+    status_id: str
+    status: Optional[WorkflowStatusResponse] = None
+    priority: Optional[Priority] = None
+    progress: Optional[int] = 0
+    story_points: Optional[int] = 0
     project_id: str
+    assignee_id: Optional[str] = None
     assignee: Optional[UserResponse] = None
+    start_date: Optional[date] = None
+    due_date: Optional[date] = None
+    sprint_id: Optional[str] = None
 
     class Config:
         from_attributes = True
