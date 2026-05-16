@@ -51,11 +51,6 @@ class ProjectService:
 
         self.db.refresh(project)
 
-        # Seed default workflow statuses for the new project
-        ws_service = WorkflowStatusService(self.db)
-        ws_service.seed_defaults(project.id)
-        self.db.commit()
-
         return project
 
     def get_projects(self) -> list[Project]:

@@ -258,6 +258,11 @@ class WorkflowStatusService:
 
     def seed_defaults(self, project_id: str) -> list[WorkflowStatus]:
         """Create the four default statuses for a newly created project."""
+        # Idempotency check: if project already has statuses, do not duplicate them.
+        existing_count = self.db.query(func.count(WorkflowStatus.id)).filter(WorkflowStatus.project_id == project_id).scalar()
+        if existing_count > 0:
+            return self.get_statuses(project_id)
+
         created = []
         for entry in DEFAULT_STATUSES:
             slug = self._slugify(entry["name"])
