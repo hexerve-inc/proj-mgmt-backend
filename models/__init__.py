@@ -1,6 +1,7 @@
 from .user import User, RoleEnum
 from .project import Project, ProjectStatus
-from .task import Task, TaskStatus, Priority
+from .task import Task, Priority
+from .workflow_status import WorkflowStatus, WorkflowGroup
 from .team import Team
 from .client import Client
 from .program import Program

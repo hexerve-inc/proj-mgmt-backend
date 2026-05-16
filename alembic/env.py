@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..'
 from core.database import Base
 from core.config import settings
 # Import models to register them with Base.metadata
-from models import user, project, task, team, client, program, time_entry, invoice
+from models import user, project, task, team, client, program, time_entry, invoice, workflow_status
 
 target_metadata = Base.metadata
 

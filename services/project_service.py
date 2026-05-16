@@ -3,6 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from models.project import Project
 from schemas.project import ProjectCreate, ProjectUpdate
+from services.workflow_status_service import WorkflowStatusService
 from typing import Optional
 import re
 
@@ -38,6 +39,9 @@ class ProjectService:
         self.db.add(project)
 
         try:
+            self.db.flush()
+            ws_service = WorkflowStatusService(self.db)
+            ws_service.seed_defaults(project.id)
             self.db.commit()
         except IntegrityError:
             self.db.rollback()
@@ -46,6 +50,12 @@ class ProjectService:
             )
 
         self.db.refresh(project)
+
+        # Seed default workflow statuses for the new project
+        ws_service = WorkflowStatusService(self.db)
+        ws_service.seed_defaults(project.id)
+        self.db.commit()
+
         return project
 
     def get_projects(self) -> list[Project]:
