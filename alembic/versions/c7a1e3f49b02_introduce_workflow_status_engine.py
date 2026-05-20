@@ -55,6 +55,10 @@ def upgrade() -> None:
     """
 
     # ── Step 1: Create the workflow_group_enum type and workflow_statuses table ──
+    op.execute("DROP TABLE IF EXISTS workflow_statuses CASCADE")
+    op.execute("DROP TYPE IF EXISTS workflow_group_enum CASCADE")
+    op.execute("ALTER TABLE tasks DROP COLUMN IF EXISTS status_id CASCADE")
+
     workflow_group_enum = postgresql.ENUM(
         "OPEN", "IN_PROGRESS", "ON_HOLD", "CLOSED",
         name="workflow_group_enum",
