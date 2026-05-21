@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 from alembic.config import Config
 from alembic import command
 
+Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -23,7 +24,6 @@ async def lifespan(app: FastAPI):
     command.upgrade(alembic_cfg, "head")
 
     # Create tables in the DB (useful for SQLite fast iterations)
-    Base.metadata.create_all(bind=engine)
     yield
 
 
