@@ -4,6 +4,7 @@ from typing import Optional
 from models.task import Priority
 from schemas.user import UserResponse
 from schemas.workflow_status import WorkflowStatusResponse
+from schemas.label import LabelResponse
 
 
 class TaskBase(BaseModel):
@@ -21,6 +22,8 @@ class TaskBase(BaseModel):
 
 class TaskCreate(TaskBase):
     project_id: str
+    label_ids: Optional[list[str]] = None
+    group_id: Optional[str] = None
 
 
 class TaskUpdate(BaseModel):
@@ -34,6 +37,8 @@ class TaskUpdate(BaseModel):
     start_date: Optional[date] = None
     due_date: Optional[date] = None
     sprint_id: Optional[str] = None
+    label_ids: Optional[list[str]] = None
+    group_id: Optional[str] = None
 
 
 class TaskResponse(BaseModel):
@@ -52,6 +57,8 @@ class TaskResponse(BaseModel):
     start_date: Optional[date] = None
     due_date: Optional[date] = None
     sprint_id: Optional[str] = None
+    labels: list[LabelResponse] = []
+    group_id: Optional[str] = None
 
     class Config:
         from_attributes = True
