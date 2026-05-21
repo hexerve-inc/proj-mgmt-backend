@@ -8,26 +8,24 @@ from core.database import engine, Base
 from models import user, project, task, team, client, program, time_entry, invoice
 from api.main import api_router
 
-from contextlib import asynccontextmanager
-from alembic.config import Config
-from alembic import command
+# from contextlib import asynccontextmanager
+# from alembic.config import Config
+# from alembic import command
+
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     # Run migrations on startup
+#     alembic_cfg = Config("alembic.ini")
+#     db_url = os.environ.get("DATABASE_URL")
+#     if db_url:
+#         alembic_cfg.set_main_option("sqlalchemy.url", db_url)
+#     command.upgrade(alembic_cfg, "head")
+
+#     # Create tables in the DB (useful for SQLite fast iterations)
+#     yield
 
 Base.metadata.create_all(bind=engine)
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Run migrations on startup
-    alembic_cfg = Config("alembic.ini")
-    db_url = os.environ.get("DATABASE_URL")
-    if db_url:
-        alembic_cfg.set_main_option("sqlalchemy.url", db_url)
-    command.upgrade(alembic_cfg, "head")
-
-    # Create tables in the DB (useful for SQLite fast iterations)
-    yield
-
-
-app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
+app = FastAPI(title=settings.PROJECT_NAME)
 
 app.add_middleware(
     CORSMiddleware,
