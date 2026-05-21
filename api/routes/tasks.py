@@ -19,7 +19,10 @@ def create_task(task_in: TaskCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Project not found")
         
     service = TaskService(db)
-    return service.create_task(task_in)
+    try:
+        return service.create_task(task_in)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 @router.get("/project/{project_id}", response_model=list[TaskResponse])
 def get_project_tasks(project_id: str, db: Session = Depends(get_db)):
@@ -37,7 +40,10 @@ def get_task(task_id: str, db: Session = Depends(get_db)):
 @router.patch("/{task_id}", response_model=TaskResponse)
 def update_task(task_id: str, task_in: TaskUpdate, db: Session = Depends(get_db)):
     service = TaskService(db)
-    task = service.update_task(task_id, task_in)
+    try:
+        task = service.update_task(task_id, task_in)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task

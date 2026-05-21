@@ -1,8 +1,16 @@
 import uuid
-from sqlalchemy import Column, String, Enum, ForeignKey, Integer, Date
+import enum
+from sqlalchemy import Column, String, Enum, ForeignKey, Integer, Date, Table
 from sqlalchemy.orm import relationship
 from core.database import Base
-import enum
+
+# Association table for many-to-many Task <-> Label
+task_labels = Table(
+    'task_labels',
+    Base.metadata,
+    Column('task_id', String, ForeignKey('tasks.id', ondelete='CASCADE'), primary_key=True),
+    Column('label_id', String, ForeignKey('labels.id', ondelete='CASCADE'), primary_key=True),
+)
 
 
 class Priority(str, enum.Enum):
@@ -25,6 +33,11 @@ class Task(Base):
     story_points = Column(Integer, nullable=True, default=0)
     start_date = Column(Date, nullable=True)
     due_date = Column(Date, nullable=True)
+    
+    
+    # New grouping and labels
+    group_id = Column(String, ForeignKey("task_groups.id", ondelete="SET NULL"), nullable=True)
+    labels = relationship("Label", secondary=task_labels, back_populates="tasks")
     
     project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
 
