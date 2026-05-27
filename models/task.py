@@ -1,6 +1,6 @@
 import uuid
 import enum
-from sqlalchemy import Column, String, Enum, ForeignKey, Integer, Date, Table
+from sqlalchemy import Column, String, Enum, ForeignKey, Integer, Date, Table, Boolean
 from sqlalchemy.orm import relationship
 from core.database import Base
 
@@ -33,6 +33,11 @@ class Task(Base):
     story_points = Column(Integer, nullable=True, default=0)
     start_date = Column(Date, nullable=True)
     due_date = Column(Date, nullable=True)
+    is_milestone = Column(Boolean, default=False, nullable=False)
+    task_type = Column(String, default="task", nullable=False)
+    parent_id = Column(String, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=True)
+    parent = relationship("Task", remote_side=[id], back_populates="subtasks")
+    subtasks = relationship("Task", back_populates="parent", cascade="all, delete-orphan")
     
     
     # New grouping and labels

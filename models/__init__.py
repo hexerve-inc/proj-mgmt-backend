@@ -11,3 +11,4 @@ from .invoice import Invoice, InvoiceStatus
 from .time_entry import TimeEntry
 from .label import Label
 from .task_group import TaskGroup
+from .custom_filter import CustomFilter

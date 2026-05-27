@@ -33,3 +33,4 @@ class Project(Base):
     client = relationship("Client", back_populates="projects")
     program = relationship("Program", back_populates="projects")
     invoices = relationship("Invoice", back_populates="project")
+    custom_filters = relationship("CustomFilter", back_populates="project", cascade="all, delete-orphan")
