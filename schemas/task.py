@@ -18,6 +18,9 @@ class TaskBase(BaseModel):
     start_date: Optional[date] = None
     due_date: Optional[date] = None
     sprint_id: Optional[str] = None
+    is_milestone: Optional[bool] = False
+    task_type: Optional[str] = "task"
+    parent_id: Optional[str] = None
 
 
 class TaskCreate(TaskBase):
@@ -39,6 +42,9 @@ class TaskUpdate(BaseModel):
     sprint_id: Optional[str] = None
     label_ids: Optional[list[str]] = None
     group_id: Optional[str] = None
+    is_milestone: Optional[bool] = None
+    task_type: Optional[str] = None
+    parent_id: Optional[str] = None
 
 
 class TaskResponse(BaseModel):
@@ -59,6 +65,9 @@ class TaskResponse(BaseModel):
     sprint_id: Optional[str] = None
     labels: list[LabelResponse] = []
     group_id: Optional[str] = None
+    is_milestone: Optional[bool] = False
+    task_type: Optional[str] = "task"
+    parent_id: Optional[str] = None
 
     class Config:
         from_attributes = True

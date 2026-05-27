@@ -1,5 +1,6 @@
 import uuid
 from sqlalchemy import Column, String, Enum
+from sqlalchemy.orm import relationship
 from core.database import Base
 import enum
 
@@ -16,3 +17,4 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(Enum(RoleEnum, name="role_enum"), default=RoleEnum.MEMBER, nullable=False)
+    custom_filters = relationship("CustomFilter", back_populates="user", cascade="all, delete-orphan")
