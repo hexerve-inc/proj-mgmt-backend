@@ -27,10 +27,10 @@ class TeamService:
         return team
 
     def get_teams(self) -> list[Team]:
-        return self.db.query(Team).all()
+        return self.db.query(Team).filter(Team.deleted_at.is_(None)).all()
 
     def get_team(self, team_id: str) -> Optional[Team]:
-        return self.db.query(Team).filter(Team.id == team_id).first()
+        return self.db.query(Team).filter(Team.id == team_id, Team.deleted_at.is_(None)).first()
 
     def update_team(self, team_id: str, team_in: TeamUpdate) -> Optional[Team]:
         team = self.get_team(team_id)
@@ -82,6 +82,6 @@ class TeamService:
         if not team:
             return False
             
-        self.db.delete(team)
+        team.soft_delete()
         self.db.commit()
         return True

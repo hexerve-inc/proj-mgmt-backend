@@ -9,10 +9,10 @@ class PortfolioService:
         self.db = db
 
     def get_portfolios(self, skip: int = 0, limit: int = 100) -> List[Portfolio]:
-        return self.db.query(Portfolio).offset(skip).limit(limit).all()
+        return self.db.query(Portfolio).filter(Portfolio.deleted_at.is_(None)).offset(skip).limit(limit).all()
 
     def get_portfolio(self, portfolio_id: str) -> Optional[Portfolio]:
-        return self.db.query(Portfolio).filter(Portfolio.id == portfolio_id).first()
+        return self.db.query(Portfolio).filter(Portfolio.id == portfolio_id, Portfolio.deleted_at.is_(None)).first()
 
     def create_portfolio(self, portfolio_in: PortfolioCreate) -> Portfolio:
         db_portfolio = Portfolio(
@@ -65,7 +65,7 @@ class PortfolioService:
         db_portfolio = self.get_portfolio(portfolio_id)
         if not db_portfolio:
             return False
-        self.db.delete(db_portfolio)
+        db_portfolio.soft_delete()
         self.db.commit()
         return True
 

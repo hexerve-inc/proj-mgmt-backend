@@ -63,7 +63,8 @@ class TimeEntryService:
         # Auto-stop any currently running entry for this user
         running = self.db.query(TimeEntry).filter(
             TimeEntry.user_id == user_id,
-            TimeEntry.is_running == True
+            TimeEntry.is_running == True,
+            TimeEntry.deleted_at.is_(None),
         ).first()
         if running:
             self._stop_running_entry(running)
@@ -89,6 +90,7 @@ class TimeEntryService:
             TimeEntry.id == entry_id,
             TimeEntry.user_id == user_id,
             TimeEntry.is_running == True,
+            TimeEntry.deleted_at.is_(None),
         ).first()
         if not entry:
             return None
@@ -104,6 +106,7 @@ class TimeEntryService:
         entry = self.db.query(TimeEntry).filter(
             TimeEntry.user_id == user_id,
             TimeEntry.is_running == True,
+            TimeEntry.deleted_at.is_(None),
         ).first()
         if not entry:
             return None
@@ -115,6 +118,7 @@ class TimeEntryService:
         return self.db.query(TimeEntry).filter(
             TimeEntry.user_id == user_id,
             TimeEntry.is_running == True,
+            TimeEntry.deleted_at.is_(None),
         ).first()
 
     def _stop_running_entry(self, entry: TimeEntry) -> None:
@@ -136,10 +140,12 @@ class TimeEntryService:
 
     def get_entries_for_task(self, task_id: str) -> list[TimeEntry]:
         return self.db.query(TimeEntry).filter(
-            TimeEntry.task_id == task_id
+            TimeEntry.task_id == task_id,
+            TimeEntry.deleted_at.is_(None),
         ).order_by(TimeEntry.date.desc()).all()
         
     def get_entries_for_user(self, user_id: str) -> list[TimeEntry]:
         return self.db.query(TimeEntry).filter(
-            TimeEntry.user_id == user_id
+            TimeEntry.user_id == user_id,
+            TimeEntry.deleted_at.is_(None),
         ).order_by(TimeEntry.date.desc()).all()

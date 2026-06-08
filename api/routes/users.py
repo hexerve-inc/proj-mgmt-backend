@@ -15,7 +15,7 @@ def read_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    users = db.query(User).offset(skip).limit(limit).all()
+    users = db.query(User).filter(User.deleted_at.is_(None)).offset(skip).limit(limit).all()
     return users
 
 @router.get("/me", response_model=UserResponse)

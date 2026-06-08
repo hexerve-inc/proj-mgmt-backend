@@ -2,6 +2,7 @@ import uuid
 from sqlalchemy import Column, String, Enum, ForeignKey, Integer, Date
 from sqlalchemy.orm import relationship
 from core.database import Base
+from models.soft_delete_mixin import SoftDeleteMixin
 import enum
 
 class ProjectStatus(str, enum.Enum):
@@ -10,7 +11,7 @@ class ProjectStatus(str, enum.Enum):
     ON_HOLD = "ON_HOLD"
     COMPLETED = "COMPLETED"
 
-class Project(Base):
+class Project(SoftDeleteMixin, Base):
     __tablename__ = "projects"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))

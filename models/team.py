@@ -2,6 +2,7 @@ import uuid
 from sqlalchemy import Column, String, ForeignKey, Table, Integer
 from sqlalchemy.orm import relationship
 from core.database import Base
+from models.soft_delete_mixin import SoftDeleteMixin
 
 team_members = Table(
     'team_members', Base.metadata,
@@ -9,7 +10,7 @@ team_members = Table(
     Column('user_id', String, ForeignKey('users.id', ondelete="CASCADE"), primary_key=True)
 )
 
-class Team(Base):
+class Team(SoftDeleteMixin, Base):
     __tablename__ = "teams"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))

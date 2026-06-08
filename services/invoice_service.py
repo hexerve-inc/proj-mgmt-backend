@@ -15,10 +15,10 @@ class InvoiceService:
         return invoice
 
     def get_invoices(self) -> list[Invoice]:
-        return self.db.query(Invoice).all()
+        return self.db.query(Invoice).filter(Invoice.deleted_at.is_(None)).all()
 
     def get_invoice(self, invoice_id: str) -> Optional[Invoice]:
-        return self.db.query(Invoice).filter(Invoice.id == invoice_id).first()
+        return self.db.query(Invoice).filter(Invoice.id == invoice_id, Invoice.deleted_at.is_(None)).first()
 
     def update_invoice(self, invoice_id: str, invoice_in: InvoiceUpdate) -> Optional[Invoice]:
         invoice = self.get_invoice(invoice_id)

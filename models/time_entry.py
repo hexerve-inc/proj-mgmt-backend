@@ -3,8 +3,9 @@ from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from core.database import Base
+from models.soft_delete_mixin import SoftDeleteMixin
 
-class TimeEntry(Base):
+class TimeEntry(SoftDeleteMixin, Base):
     __tablename__ = "time_entries"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))

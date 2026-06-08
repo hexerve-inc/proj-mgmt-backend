@@ -27,10 +27,10 @@ class ProgramService:
         return program
 
     def get_programs(self) -> list[Program]:
-        return self.db.query(Program).all()
+        return self.db.query(Program).filter(Program.deleted_at.is_(None)).all()
 
     def get_program(self, program_id: str) -> Optional[Program]:
-        return self.db.query(Program).filter(Program.id == program_id).first()
+        return self.db.query(Program).filter(Program.id == program_id, Program.deleted_at.is_(None)).first()
 
     def update_program(self, program_id: str, program_in: ProgramUpdate) -> Optional[Program]:
         program = self.get_program(program_id)

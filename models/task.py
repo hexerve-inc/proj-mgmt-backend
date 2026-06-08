@@ -3,6 +3,7 @@ import enum
 from sqlalchemy import Column, String, Enum, ForeignKey, Integer, Date, Table, Boolean
 from sqlalchemy.orm import relationship
 from core.database import Base
+from models.soft_delete_mixin import SoftDeleteMixin
 
 # Association table for many-to-many Task <-> Label
 task_labels = Table(
@@ -20,7 +21,7 @@ class Priority(str, enum.Enum):
     URGENT = "URGENT"
 
 
-class Task(Base):
+class Task(SoftDeleteMixin, Base):
     __tablename__ = "tasks"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))

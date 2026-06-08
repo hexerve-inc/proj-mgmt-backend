@@ -25,6 +25,7 @@ class TaskService:
     def get_tasks(self) -> list[Task]:
         return (
             self.db.query(Task)
+            .filter(Task.deleted_at.is_(None))
             .options(joinedload(Task.assignee), joinedload(Task.status), joinedload(Task.labels))
             .all()
         )
@@ -67,7 +68,7 @@ class TaskService:
     def get_tasks_for_project(self, project_id: str) -> list[Task]:
         return (
             self.db.query(Task)
-            .filter(Task.project_id == project_id)
+            .filter(Task.project_id == project_id, Task.deleted_at.is_(None))
             .options(joinedload(Task.assignee), joinedload(Task.status), joinedload(Task.labels))
             .all()
         )
@@ -75,7 +76,7 @@ class TaskService:
     def get_task(self, task_id: str) -> Optional[Task]:
         return (
             self.db.query(Task)
-            .filter(Task.id == task_id)
+            .filter(Task.id == task_id, Task.deleted_at.is_(None))
             .options(joinedload(Task.assignee), joinedload(Task.status), joinedload(Task.labels))
             .first()
         )
@@ -108,3 +109,15 @@ class TaskService:
 
         self.db.commit()
         return self.get_task(task_id)
+
+    def delete_task(self, task_id: str) -> bool:
+        """Soft-delete a task by setting deleted_at."""
+        task = self.get_task(task_id)
+        if not task:
+            return False
+        import datetime
+        suffix = f"-del-{int(datetime.datetime.now().timestamp())}"
+        task.task_code = f"{task.task_code}{suffix}"
+        task.soft_delete()
+        self.db.commit()
+        return True
