@@ -15,3 +15,4 @@ from .task_group import TaskGroup
 from .custom_filter import CustomFilter
 from .notification_preference import NotificationPreference, NotificationEventType
 from .notification_log import NotificationLog
+from .task_attachment import TaskAttachment

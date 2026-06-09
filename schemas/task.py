@@ -5,6 +5,7 @@ from models.task import Priority
 from schemas.user import UserResponse
 from schemas.workflow_status import WorkflowStatusResponse
 from schemas.label import LabelResponse
+from schemas.task_attachment import TaskAttachmentRead
 
 
 class TaskBase(BaseModel):
@@ -68,6 +69,7 @@ class TaskResponse(BaseModel):
     is_milestone: Optional[bool] = False
     task_type: Optional[str] = "task"
     parent_id: Optional[str] = None
+    attachments: list[TaskAttachmentRead] = []
 
     class Config:
         from_attributes = True
