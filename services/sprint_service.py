@@ -5,11 +5,11 @@ from schemas.sprint import SprintCreate, SprintUpdate
 class SprintService:
     @staticmethod
     def get_all(db: Session):
-        return db.query(Sprint).all()
+        return db.query(Sprint).filter(Sprint.deleted_at.is_(None)).all()
 
     @staticmethod
     def get_by_id(db: Session, sprint_id: str):
-        return db.query(Sprint).filter(Sprint.id == sprint_id).first()
+        return db.query(Sprint).filter(Sprint.id == sprint_id, Sprint.deleted_at.is_(None)).first()
 
     @staticmethod
     def create(db: Session, sprint: SprintCreate):
@@ -43,7 +43,7 @@ class SprintService:
     def delete(db: Session, sprint_id: str):
         db_sprint = SprintService.get_by_id(db, sprint_id)
         if db_sprint:
-            db.delete(db_sprint)
+            db_sprint.soft_delete()
             db.commit()
             return True
         return False

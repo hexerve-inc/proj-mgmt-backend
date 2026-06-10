@@ -2,8 +2,9 @@ import uuid
 from sqlalchemy import Column, String, ForeignKey
 from sqlalchemy.orm import relationship
 from core.database import Base
+from models.soft_delete_mixin import SoftDeleteMixin
 
-class TaskGroup(Base):
+class TaskGroup(SoftDeleteMixin, Base):
     __tablename__ = "task_groups"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))

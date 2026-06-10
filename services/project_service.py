@@ -17,7 +17,7 @@ class ProjectService:
 
         existing_name = (
             self.db.query(Project)
-            .filter(func.lower(Project.name) == normalized_name.lower())
+            .filter(func.lower(Project.name) == normalized_name.lower(), Project.deleted_at.is_(None))
             .first()
         )
         if existing_name:
@@ -25,7 +25,7 @@ class ProjectService:
 
         existing_key = (
             self.db.query(Project)
-            .filter(func.lower(Project.project_key) == normalized_key.lower())
+            .filter(func.lower(Project.project_key) == normalized_key.lower(), Project.deleted_at.is_(None))
             .first()
         )
         if existing_key:
@@ -54,10 +54,10 @@ class ProjectService:
         return project
 
     def get_projects(self) -> list[Project]:
-        return self.db.query(Project).all()
+        return self.db.query(Project).filter(Project.deleted_at.is_(None)).all()
         
     def get_project(self, project_id: str) -> Optional[Project]:
-        return self.db.query(Project).filter(Project.id == project_id).first()
+        return self.db.query(Project).filter(Project.id == project_id, Project.deleted_at.is_(None)).first()
 
     def update_project(self, project_id: str, project_in: ProjectUpdate) -> Optional[Project]:
         project = self.get_project(project_id)
@@ -78,7 +78,11 @@ class ProjectService:
     def delete_project(self, project_id: str) -> None:
         project = self.get_project(project_id)
         if project:
-            self.db.delete(project)
+            import datetime
+            suffix = f"-del-{int(datetime.datetime.now().timestamp())}"
+            project.name = f"{project.name}{suffix}"
+            project.project_key = f"{project.project_key}{suffix}"
+            project.soft_delete()
             self.db.commit()
 
     def check_uniqueness(self, name: Optional[str] = None, project_key: Optional[str] = None) -> dict:
@@ -87,7 +91,7 @@ class ProjectService:
             normalized_name = name.strip()
             existing_name = (
                 self.db.query(Project)
-                .filter(func.lower(Project.name) == normalized_name.lower())
+                .filter(func.lower(Project.name) == normalized_name.lower(), Project.deleted_at.is_(None))
                 .first()
             )
             if existing_name:
@@ -97,7 +101,7 @@ class ProjectService:
             normalized_key = project_key.strip()
             existing_key = (
                 self.db.query(Project)
-                .filter(func.lower(Project.project_key) == normalized_key.lower())
+                .filter(func.lower(Project.project_key) == normalized_key.lower(), Project.deleted_at.is_(None))
                 .first()
             )
             if existing_key:

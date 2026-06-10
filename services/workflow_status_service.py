@@ -52,6 +52,7 @@ class WorkflowStatusService:
             .filter(
                 WorkflowStatus.project_id == project_id,
                 WorkflowStatus.group_key == group_key,
+                WorkflowStatus.deleted_at.is_(None),
             )
             .scalar()
         )
@@ -65,6 +66,7 @@ class WorkflowStatusService:
             query = self.db.query(WorkflowStatus).filter(
                 WorkflowStatus.project_id == project_id,
                 WorkflowStatus.slug == slug,
+                WorkflowStatus.deleted_at.is_(None),
             )
             if exclude_id:
                 query = query.filter(WorkflowStatus.id != exclude_id)
@@ -79,7 +81,7 @@ class WorkflowStatusService:
         """Return all statuses for a project, sorted by group order then position."""
         statuses = (
             self.db.query(WorkflowStatus)
-            .filter(WorkflowStatus.project_id == project_id)
+            .filter(WorkflowStatus.project_id == project_id, WorkflowStatus.deleted_at.is_(None))
             .all()
         )
         return sorted(
@@ -90,7 +92,7 @@ class WorkflowStatusService:
     def get_status(self, status_id: str) -> Optional[WorkflowStatus]:
         return (
             self.db.query(WorkflowStatus)
-            .filter(WorkflowStatus.id == status_id)
+            .filter(WorkflowStatus.id == status_id, WorkflowStatus.deleted_at.is_(None))
             .first()
         )
 
@@ -101,6 +103,7 @@ class WorkflowStatusService:
             .filter(
                 WorkflowStatus.project_id == project_id,
                 WorkflowStatus.is_default == True,
+                WorkflowStatus.deleted_at.is_(None),
             )
             .first()
         )
@@ -114,7 +117,7 @@ class WorkflowStatusService:
         # Enforce cap
         count = (
             self.db.query(func.count(WorkflowStatus.id))
-            .filter(WorkflowStatus.project_id == project_id)
+            .filter(WorkflowStatus.project_id == project_id, WorkflowStatus.deleted_at.is_(None))
             .scalar()
         )
         if count >= MAX_STATUSES_PER_PROJECT:
@@ -203,6 +206,7 @@ class WorkflowStatusService:
                 WorkflowStatus.project_id == status.project_id,
                 WorkflowStatus.group_key == status.group_key,
                 WorkflowStatus.id != status_id,
+                WorkflowStatus.deleted_at.is_(None),
             )
             .count()
         )
@@ -217,7 +221,7 @@ class WorkflowStatusService:
         # Check for tasks using this status
         task_count = (
             self.db.query(func.count(Task.id))
-            .filter(Task.status_id == status_id)
+            .filter(Task.status_id == status_id, Task.deleted_at.is_(None))
             .scalar()
         )
         if task_count > 0:
@@ -234,7 +238,10 @@ class WorkflowStatusService:
                 {"status_id": move_to_status_id}
             )
 
-        self.db.delete(status)
+        import datetime
+        suffix = f"-del-{int(datetime.datetime.now().timestamp())}"
+        status.slug = f"{status.slug}{suffix}"
+        status.soft_delete()
         self.db.commit()
 
     # ── Reorder ──────────────────────────────────────────────────
@@ -259,7 +266,11 @@ class WorkflowStatusService:
     def seed_defaults(self, project_id: str) -> list[WorkflowStatus]:
         """Create the four default statuses for a newly created project."""
         # Idempotency check: if project already has statuses, do not duplicate them.
-        existing_count = self.db.query(func.count(WorkflowStatus.id)).filter(WorkflowStatus.project_id == project_id).scalar()
+        existing_count = (
+            self.db.query(func.count(WorkflowStatus.id))
+            .filter(WorkflowStatus.project_id == project_id, WorkflowStatus.deleted_at.is_(None))
+            .scalar()
+        )
         if existing_count > 0:
             return self.get_statuses(project_id)
 
@@ -289,4 +300,5 @@ class WorkflowStatusService:
         self.db.query(WorkflowStatus).filter(
             WorkflowStatus.project_id == project_id,
             WorkflowStatus.is_default == True,
+            WorkflowStatus.deleted_at.is_(None),
         ).update({"is_default": False})

@@ -15,10 +15,10 @@ class ClientService:
         return client
 
     def get_clients(self) -> list[Client]:
-        return self.db.query(Client).all()
+        return self.db.query(Client).filter(Client.deleted_at.is_(None)).all()
 
     def get_client(self, client_id: str) -> Optional[Client]:
-        return self.db.query(Client).filter(Client.id == client_id).first()
+        return self.db.query(Client).filter(Client.id == client_id, Client.deleted_at.is_(None)).first()
 
     def update_client(self, client_id: str, client_in: ClientUpdate) -> Optional[Client]:
         client = self.get_client(client_id)
@@ -38,6 +38,6 @@ class ClientService:
         if not client:
             return False
             
-        self.db.delete(client)
+        client.soft_delete()
         self.db.commit()
         return True

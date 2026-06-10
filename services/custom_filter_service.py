@@ -8,14 +8,16 @@ class CustomFilterService:
     def get_project_filters(db: Session, project_id: str, user_id: str):
         return db.query(CustomFilter).filter(
             CustomFilter.project_id == project_id,
-            CustomFilter.user_id == user_id
+            CustomFilter.user_id == user_id,
+            CustomFilter.deleted_at.is_(None),
         ).all()
 
     @staticmethod
     def get_filter(db: Session, filter_id: str, user_id: str):
         db_filter = db.query(CustomFilter).filter(
             CustomFilter.id == filter_id,
-            CustomFilter.user_id == user_id
+            CustomFilter.user_id == user_id,
+            CustomFilter.deleted_at.is_(None),
         ).first()
         if not db_filter:
             raise HTTPException(status_code=404, detail="Custom filter not found")
@@ -48,6 +50,6 @@ class CustomFilterService:
     @staticmethod
     def delete_filter(db: Session, filter_id: str, user_id: str):
         db_filter = CustomFilterService.get_filter(db, filter_id, user_id)
-        db.delete(db_filter)
+        db_filter.soft_delete()
         db.commit()
         return True

@@ -1,6 +1,5 @@
 import uuid
 import enum
-from datetime import datetime
 
 from sqlalchemy import (
     Column,
@@ -9,12 +8,12 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     Boolean,
-    DateTime,
     UniqueConstraint,
     Index,
 )
 from sqlalchemy.orm import relationship
 from core.database import Base
+from models.soft_delete_mixin import SoftDeleteMixin
 
 
 class WorkflowGroup(str, enum.Enum):
@@ -30,7 +29,7 @@ class WorkflowGroup(str, enum.Enum):
     CLOSED = "CLOSED"
 
 
-class WorkflowStatus(Base):
+class WorkflowStatus(SoftDeleteMixin, Base):
     """Per-project custom status within a workflow group.
 
     Each project has its own set of statuses (e.g. "To Do", "In Review").
@@ -55,7 +54,7 @@ class WorkflowStatus(Base):
     icon = Column(String(50), nullable=True)
     position = Column(Integer, default=0, nullable=False)
     is_default = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    # created_at, updated_at, deleted_at inherited from SoftDeleteMixin
 
     # ── Constraints ──────────────────────────────────────────────
     __table_args__ = (

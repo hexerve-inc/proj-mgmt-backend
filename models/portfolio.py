@@ -2,8 +2,9 @@ import uuid
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 from core.database import Base
+from models.soft_delete_mixin import SoftDeleteMixin
 
-class Portfolio(Base):
+class Portfolio(SoftDeleteMixin, Base):
     __tablename__ = "portfolios"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
