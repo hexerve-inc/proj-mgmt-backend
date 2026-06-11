@@ -138,6 +138,12 @@ class TimeEntryService:
         self.db.commit()
         self.db.refresh(entry)
 
+    def get_all_entries(self) -> list[TimeEntry]:
+        """Return all non-deleted time entries."""
+        return self.db.query(TimeEntry).filter(
+            TimeEntry.deleted_at.is_(None),
+        ).order_by(TimeEntry.date.desc()).all()
+
     def get_entries_for_task(self, task_id: str) -> list[TimeEntry]:
         return self.db.query(TimeEntry).filter(
             TimeEntry.task_id == task_id,
@@ -149,3 +155,31 @@ class TimeEntryService:
             TimeEntry.user_id == user_id,
             TimeEntry.deleted_at.is_(None),
         ).order_by(TimeEntry.date.desc()).all()
+
+    def get_entry_by_id(self, entry_id: str) -> Optional[TimeEntry]:
+        """Get a single time entry by ID."""
+        return self.db.query(TimeEntry).filter(
+            TimeEntry.id == entry_id,
+            TimeEntry.deleted_at.is_(None),
+        ).first()
+
+    def update_entry(self, entry_id: str, updates: dict) -> Optional[TimeEntry]:
+        """Update a time entry's fields."""
+        entry = self.get_entry_by_id(entry_id)
+        if not entry:
+            return None
+        for key, value in updates.items():
+            if hasattr(entry, key) and value is not None:
+                setattr(entry, key, value)
+        self.db.commit()
+        self.db.refresh(entry)
+        return entry
+
+    def delete_entry(self, entry_id: str) -> bool:
+        """Soft-delete a time entry."""
+        entry = self.get_entry_by_id(entry_id)
+        if not entry:
+            return False
+        entry.deleted_at = datetime.now(timezone.utc)
+        self.db.commit()
+        return True
