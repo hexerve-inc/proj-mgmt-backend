@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from api.deps import get_db, get_current_user
 from schemas.time_entry import (
     TimeEntryCreate,
+    TimeEntryUpdate,
     TimeEntryResponse,
     TimeEntryStartRequest,
     TimeEntryStopRequest,
@@ -11,6 +12,13 @@ from services.time_entry_service import TimeEntryService
 from models.user import User
 
 router = APIRouter()
+
+# ── List all time entries ─────────────────────────────────────────────────
+
+@router.get("/", response_model=list[TimeEntryResponse])
+def list_time_entries(db: Session = Depends(get_db)):
+    service = TimeEntryService(db)
+    return service.get_all_entries()
 
 # ── Manual time entry (legacy) ────────────────────────────────────────────
 
@@ -99,3 +107,37 @@ def get_task_entries(task_id: str, db: Session = Depends(get_db)):
 def get_user_entries(user_id: str, db: Session = Depends(get_db)):
     service = TimeEntryService(db)
     return service.get_entries_for_user(user_id)
+
+# ── Single entry CRUD ────────────────────────────────────────────────────
+
+@router.get("/{entry_id}", response_model=TimeEntryResponse)
+def get_time_entry(entry_id: str, db: Session = Depends(get_db)):
+    """Get a single time entry by ID."""
+    service = TimeEntryService(db)
+    entry = service.get_entry_by_id(entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Time entry not found")
+    return entry
+
+@router.patch("/{entry_id}", response_model=TimeEntryResponse)
+def update_time_entry(
+    entry_id: str,
+    updates: TimeEntryUpdate,
+    db: Session = Depends(get_db),
+):
+    """Update a time entry."""
+    service = TimeEntryService(db)
+    entry = service.update_entry(entry_id, updates.model_dump(exclude_unset=True))
+    if not entry:
+        raise HTTPException(status_code=404, detail="Time entry not found")
+    return entry
+
+@router.delete("/{entry_id}")
+def delete_time_entry(entry_id: str, db: Session = Depends(get_db)):
+    """Soft-delete a time entry."""
+    service = TimeEntryService(db)
+    success = service.delete_entry(entry_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Time entry not found")
+    return {"detail": "Time entry deleted"}
+
