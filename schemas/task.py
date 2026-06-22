@@ -70,6 +70,8 @@ class TaskResponse(BaseModel):
     task_type: Optional[str] = "task"
     parent_id: Optional[str] = None
     attachments: list[TaskAttachmentRead] = []
+    watcher_count: Optional[int] = 0
+    is_watching: Optional[bool] = False
 
     class Config:
         from_attributes = True

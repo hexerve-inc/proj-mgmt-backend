@@ -2,10 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from api.deps import get_db, get_current_user
 from schemas.task import TaskCreate, TaskResponse, TaskUpdate
+from schemas.task_watcher import (
+    WatchStatusResponse,
+    TaskWatchersListResponse,
+    TaskWatcherUserResponse,
+)
 from services.task_service import TaskService
 from services.project_service import ProjectService
 from services.notification_service import NotificationService
 from services.notification_events import NotificationEvent
+from services.task_watcher_service import TaskWatcherService
 from models.notification_preference import NotificationEventType
 from models.user import User
 
@@ -27,10 +33,33 @@ def _emit_task_notifications(
         db.close()
 
 
-@router.get("/", response_model=list[TaskResponse])
-def get_tasks(db: Session = Depends(get_db)):
+def _enrich_tasks_with_watcher_data(
+    tasks, db: Session, current_user_id: str
+) -> list[dict]:
+    """Inject watcher_count and is_watching into task responses."""
+    if not tasks:
+        return []
+    watcher_service = TaskWatcherService(db)
+    task_ids = [t.id for t in tasks]
+    counts = watcher_service.get_watcher_counts_bulk(task_ids)
+    watching = watcher_service.get_watching_status_bulk(task_ids, current_user_id)
+    result = []
+    for t in tasks:
+        task_dict = TaskResponse.model_validate(t).model_dump()
+        task_dict["watcher_count"] = counts.get(t.id, 0)
+        task_dict["is_watching"] = watching.get(t.id, False)
+        result.append(task_dict)
+    return result
+
+
+@router.get("/")
+def get_tasks(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     service = TaskService(db)
-    return service.get_tasks()
+    tasks = service.get_tasks()
+    return _enrich_tasks_with_watcher_data(tasks, db, current_user.id)
 
 @router.post("/", response_model=TaskResponse)
 def create_task(
@@ -48,6 +77,10 @@ def create_task(
         task = service.create_task(task_in)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+    # Auto-watch: task creator becomes first watcher
+    watcher_service = TaskWatcherService(db)
+    watcher_service.watch_task(task.id, current_user.id)
 
     # Emit TASK_CREATED notification
     background_tasks.add_task(
@@ -67,20 +100,37 @@ def create_task(
         ),
     )
 
-    return task
+    # Return enriched response with watcher data
+    task_dict = TaskResponse.model_validate(task).model_dump()
+    task_dict["watcher_count"] = watcher_service.get_watcher_count(task.id)
+    task_dict["is_watching"] = True  # Creator just auto-watched
+    return task_dict
 
-@router.get("/project/{project_id}", response_model=list[TaskResponse])
-def get_project_tasks(project_id: str, db: Session = Depends(get_db)):
+@router.get("/project/{project_id}")
+def get_project_tasks(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     service = TaskService(db)
-    return service.get_tasks_for_project(project_id)
+    tasks = service.get_tasks_for_project(project_id)
+    return _enrich_tasks_with_watcher_data(tasks, db, current_user.id)
 
-@router.get("/{task_id}", response_model=TaskResponse)
-def get_task(task_id: str, db: Session = Depends(get_db)):
+@router.get("/{task_id}")
+def get_task(
+    task_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     service = TaskService(db)
     task = service.get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    return task
+    watcher_service = TaskWatcherService(db)
+    task_dict = TaskResponse.model_validate(task).model_dump()
+    task_dict["watcher_count"] = watcher_service.get_watcher_count(task_id)
+    task_dict["is_watching"] = watcher_service.is_watching(task_id, current_user.id)
+    return task_dict
 
 @router.patch("/{task_id}", response_model=TaskResponse)
 def update_task(
@@ -310,3 +360,78 @@ def delete_task(
 
     return {"message": "Task deleted successfully"}
 
+
+# ── Task Watcher endpoints ───────────────────────────────────────
+
+@router.post("/{task_id}/watch", response_model=WatchStatusResponse)
+def watch_task(
+    task_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Current user starts watching the task."""
+    service = TaskService(db)
+    task = service.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    watcher_service = TaskWatcherService(db)
+    watcher_service.watch_task(task_id, current_user.id)
+    return WatchStatusResponse(
+        watching=True,
+        watcher_count=watcher_service.get_watcher_count(task_id),
+    )
+
+
+@router.delete("/{task_id}/watch", response_model=WatchStatusResponse)
+def unwatch_task(
+    task_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Current user stops watching the task."""
+    service = TaskService(db)
+    task = service.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    watcher_service = TaskWatcherService(db)
+    watcher_service.unwatch_task(task_id, current_user.id)
+    return WatchStatusResponse(
+        watching=False,
+        watcher_count=watcher_service.get_watcher_count(task_id),
+    )
+
+
+@router.get("/{task_id}/watchers", response_model=TaskWatchersListResponse)
+def get_task_watchers(
+    task_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all users watching this task."""
+    service = TaskService(db)
+    task = service.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    watcher_service = TaskWatcherService(db)
+    watchers = watcher_service.get_task_watchers_with_since(task_id)
+    return TaskWatchersListResponse(
+        watchers=[TaskWatcherUserResponse(**w) for w in watchers],
+        count=len(watchers),
+    )
+
+
+@router.get("/{task_id}/watch/status", response_model=WatchStatusResponse)
+def get_watch_status(
+    task_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Check if current user is watching this task."""
+    watcher_service = TaskWatcherService(db)
+    return WatchStatusResponse(
+        watching=watcher_service.is_watching(task_id, current_user.id),
+        watcher_count=watcher_service.get_watcher_count(task_id),
+    )

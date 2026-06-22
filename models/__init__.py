@@ -16,3 +16,4 @@ from .custom_filter import CustomFilter
 from .notification_preference import NotificationPreference, NotificationEventType
 from .notification_log import NotificationLog
 from .task_attachment import TaskAttachment
+from .task_watcher import TaskWatcher

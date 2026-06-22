@@ -43,3 +43,10 @@ class SoftDeleteMixin:
     def is_deleted(self) -> bool:
         """Return True if the record has been soft-deleted."""
         return self.deleted_at is not None
+
+from sqlalchemy import event, Index, Table
+
+@event.listens_for(Table, "after_parent_attach")
+def _add_deleted_at_index(table, metadata):
+    if "deleted_at" in table.c and not any(idx.name == f"idx_{table.name}_deleted_at" for idx in table.indexes):
+        Index(f"idx_{table.name}_deleted_at", table.c.deleted_at)

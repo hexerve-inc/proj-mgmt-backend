@@ -21,23 +21,26 @@ BASE_HTML = """\
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>{{ subject }}</title>
 <style>
-  body { margin: 0; padding: 0; background-color: #f4f4f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-  .email-wrapper { width: 100%; background-color: #f4f4f7; padding: 40px 0; }
-  .email-body { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-  .email-header { background: linear-gradient(135deg, #7B68EE 0%, #5B4CD8 100%); padding: 28px 32px; }
-  .email-header h1 { color: #ffffff; margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
-  .email-content { padding: 32px; color: #374151; line-height: 1.6; font-size: 15px; }
-  .email-content h2 { color: #111827; font-size: 18px; margin: 0 0 16px 0; font-weight: 600; }
-  .detail-card { background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
-  .detail-card .label { color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 4px; }
-  .detail-card .value { color: #111827; font-size: 15px; font-weight: 500; }
-  .change-row { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
-  .old-value { color: #9ca3af; text-decoration: line-through; }
-  .new-value { color: #7B68EE; font-weight: 600; }
-  .arrow { color: #d1d5db; }
-  .btn { display: inline-block; background: linear-gradient(135deg, #7B68EE 0%, #5B4CD8 100%); color: #ffffff !important; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; margin-top: 20px; }
-  .email-footer { padding: 24px 32px; text-align: center; color: #9ca3af; font-size: 12px; border-top: 1px solid #f3f4f6; }
-  .email-footer a { color: #7B68EE; text-decoration: none; }
+  body { margin: 0; padding: 0; background-color: #f8fafc; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  .email-wrapper { width: 100%; background-color: #f8fafc; padding: 48px 0; }
+  .email-body { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.02); border: 1px solid #f1f5f9; }
+  .email-header { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); padding: 36px 40px; text-align: center; }
+  .email-header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+  .email-content { padding: 40px; color: #334155; line-height: 1.6; font-size: 16px; }
+  .email-content h2 { color: #0f172a; font-size: 20px; margin: 0 0 20px 0; font-weight: 700; letter-spacing: -0.3px; }
+  .email-content p { margin: 0 0 20px 0; }
+  .detail-card { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; margin: 24px 0; }
+  .detail-card .label { color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 700; margin-bottom: 8px; }
+  .detail-card .value { color: #0f172a; font-size: 16px; font-weight: 500; }
+  .change-row { padding: 4px 0; }
+  .old-value { color: #94a3b8; text-decoration: line-through; display: inline-block; }
+  .arrow { color: #cbd5e1; margin: 0 12px; font-weight: 600; display: inline-block; }
+  .new-value { color: #4f46e5; font-weight: 700; display: inline-block; }
+  .btn-wrapper { margin-top: 32px; text-align: center; }
+  .btn { display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #ffffff !important; padding: 14px 32px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 15px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2); }
+  .email-footer { padding: 32px 40px; text-align: center; color: #94a3b8; font-size: 13px; background-color: #fcfcfd; border-top: 1px solid #f1f5f9; }
+  .email-footer a { color: #6366f1; text-decoration: none; font-weight: 500; }
+  .email-footer p { margin: 0 0 8px 0; }
 </style>
 </head>
 <body>
@@ -47,7 +50,7 @@ BASE_HTML = """\
       <h1>{{ header_title }}</h1>
     </div>
     <div class="email-content">
-      {{ content }}
+      {{ content | safe }}
     </div>
     <div class="email-footer">
       <p>You received this email because of your notification preferences in <a href="{{ frontend_url }}">{{ app_name }}</a>.</p>
@@ -78,7 +81,9 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
   <div class="value">{{ description }}</div>
 </div>
 {% endif %}
-<a href="{{ task_url }}" class="btn">View Task →</a>
+<div class="btn-wrapper">
+  <a href="{{ task_url }}" class="btn">View Task →</a>
+</div>
 """,
     },
     "TASK_STATUS_CHANGED": {
@@ -95,7 +100,9 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
     <span class="new-value">{{ new_status }}</span>
   </div>
 </div>
-<a href="{{ task_url }}" class="btn">View Task →</a>
+<div class="btn-wrapper">
+  <a href="{{ task_url }}" class="btn">View Task →</a>
+</div>
 """,
     },
     "TASK_ASSIGNED": {
@@ -108,7 +115,9 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
   <div class="label">Assigned To</div>
   <div class="value">{{ assignee_name }}</div>
 </div>
-<a href="{{ task_url }}" class="btn">View Task →</a>
+<div class="btn-wrapper">
+  <a href="{{ task_url }}" class="btn">View Task →</a>
+</div>
 """,
     },
     "TASK_REASSIGNED": {
@@ -125,7 +134,9 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
     <span class="new-value">{{ new_assignee_name }}</span>
   </div>
 </div>
-<a href="{{ task_url }}" class="btn">View Task →</a>
+<div class="btn-wrapper">
+  <a href="{{ task_url }}" class="btn">View Task →</a>
+</div>
 """,
     },
     "TASK_DETAILS_UPDATED": {
@@ -138,7 +149,9 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
   <div class="label">Changed Fields</div>
   <div class="value">{{ changed_fields }}</div>
 </div>
-<a href="{{ task_url }}" class="btn">View Task →</a>
+<div class="btn-wrapper">
+  <a href="{{ task_url }}" class="btn">View Task →</a>
+</div>
 """,
     },
     "TASK_DELETED": {
@@ -163,7 +176,9 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
     <span class="new-value">{{ new_priority }}</span>
   </div>
 </div>
-<a href="{{ task_url }}" class="btn">View Task →</a>
+<div class="btn-wrapper">
+  <a href="{{ task_url }}" class="btn">View Task →</a>
+</div>
 """,
     },
     "TASK_DUE_DATE_CHANGED": {
@@ -180,7 +195,9 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
     <span class="new-value">{{ new_due_date or 'Not set' }}</span>
   </div>
 </div>
-<a href="{{ task_url }}" class="btn">View Task →</a>
+<div class="btn-wrapper">
+  <a href="{{ task_url }}" class="btn">View Task →</a>
+</div>
 """,
     },
     "TASK_SPRINT_CHANGED": {
@@ -197,7 +214,9 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
     <span class="new-value">{{ new_sprint or 'Backlog' }}</span>
   </div>
 </div>
-<a href="{{ task_url }}" class="btn">View Task →</a>
+<div class="btn-wrapper">
+  <a href="{{ task_url }}" class="btn">View Task →</a>
+</div>
 """,
     },
     "TASK_COMMENT_ADDED": {
@@ -210,7 +229,9 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
   <div class="label">Comment</div>
   <div class="value">{{ comment_text }}</div>
 </div>
-<a href="{{ task_url }}" class="btn">View Task →</a>
+<div class="btn-wrapper">
+  <a href="{{ task_url }}" class="btn">View Task →</a>
+</div>
 """,
     },
     "TASK_COMMENT_MENTION": {
@@ -223,7 +244,9 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
   <div class="label">Comment</div>
   <div class="value">{{ comment_text }}</div>
 </div>
-<a href="{{ task_url }}" class="btn">View Task →</a>
+<div class="btn-wrapper">
+  <a href="{{ task_url }}" class="btn">View Task →</a>
+</div>
 """,
     },
     "SPRINT_STARTED": {
@@ -238,7 +261,9 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
   <div class="value">{{ sprint_goal }}</div>
 </div>
 {% endif %}
-<a href="{{ frontend_url }}" class="btn">View Sprint →</a>
+<div class="btn-wrapper">
+  <a href="{{ frontend_url }}" class="btn">View Sprint →</a>
+</div>
 """,
     },
     "SPRINT_COMPLETED": {
@@ -247,7 +272,9 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
         "content": """\
 <h2>{{ sprint_name }}</h2>
 <p><strong>{{ actor_name }}</strong> marked this sprint as completed in <strong>{{ project_name }}</strong>.</p>
-<a href="{{ frontend_url }}" class="btn">View Project →</a>
+<div class="btn-wrapper">
+  <a href="{{ frontend_url }}" class="btn">View Project →</a>
+</div>
 """,
     },
     "PROJECT_STATUS_CHANGED": {
@@ -264,9 +291,11 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
     <span class="new-value">{{ new_status }}</span>
   </div>
 </div>
-<a href="{{ frontend_url }}/projects" class="btn">View Project →</a>
+<div class="btn-wrapper">
+  <a href="{{ frontend_url }}/projects" class="btn">View Project →</a>
+</div>
 """,
-    },
+    }
 }
 
 

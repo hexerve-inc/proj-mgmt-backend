@@ -310,6 +310,14 @@ class NotificationService:
                 seen.add(u.id)
                 unique.append(u)
 
+        # ── Task Watcher recipients (additive — never replaces existing logic) ──
+        if event.entity_type == "task":
+            watcher_users = self._get_task_watchers(event.entity_id)
+            for wu in watcher_users:
+                if wu.id not in seen:
+                    seen.add(wu.id)
+                    unique.append(wu)
+
         return unique
 
     # ── Preference Check ─────────────────────────────────────────
@@ -418,3 +426,25 @@ class NotificationService:
             return []
 
         return list(team.members)
+
+    def _get_task_watchers(self, task_id: str) -> list[User]:
+        """Get all users actively watching this task."""
+        from models.task_watcher import TaskWatcher
+
+        watcher_records = (
+            self.db.query(TaskWatcher)
+            .filter(
+                TaskWatcher.task_id == task_id,
+                TaskWatcher.deleted_at.is_(None),
+            )
+            .all()
+        )
+        if not watcher_records:
+            return []
+
+        user_ids = [w.user_id for w in watcher_records]
+        return (
+            self.db.query(User)
+            .filter(User.id.in_(user_ids), User.deleted_at.is_(None))
+            .all()
+        )
