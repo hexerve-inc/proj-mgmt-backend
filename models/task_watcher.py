@@ -30,7 +30,7 @@ class TaskWatcher(SoftDeleteMixin, Base):
     )
 
     # ── Relationships ────────────────────────────────────────────
-    task = relationship("Task", back_populates="watchers")
+    task = relationship("Task", back_populates="watcher_records")
     user = relationship("User")
 
     # ── Constraints & Indexes ────────────────────────────────────
