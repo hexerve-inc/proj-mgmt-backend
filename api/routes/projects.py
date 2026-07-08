@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from api.deps import get_db, get_current_user
+from api.deps import get_db, get_current_user, require_permission
 from schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
 from services.project_service import ProjectService
 from services.notification_service import NotificationService
@@ -23,7 +23,7 @@ def _emit_project_notification(event: NotificationEvent):
         db.close()
 
 
-@router.post("/", response_model=ProjectResponse)
+@router.post("/", response_model=ProjectResponse, dependencies=[Depends(require_permission("projects:create"))])
 def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
     service = ProjectService(db)
     try:
@@ -31,18 +31,23 @@ def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
-@router.get("/", response_model=list[ProjectResponse])
+@router.get("/", response_model=list[ProjectResponse], dependencies=[Depends(require_permission("projects:read"))])
 def get_projects(db: Session = Depends(get_db)):
     service = ProjectService(db)
     return service.get_projects()
 
-@router.get("/validate", response_model=dict)
+@router.get("/validate", response_model=dict, dependencies=[Depends(require_permission("projects:read"))])
 def validate_project(name: str = None, project_key: str = None, db: Session = Depends(get_db)):
     service = ProjectService(db)
     return service.check_uniqueness(name, project_key)
 
 @router.get("/{project_id}", response_model=ProjectResponse)
-def get_project(project_id: str, db: Session = Depends(get_db)):
+def get_project(
+    project_id: str, 
+    db: Session = Depends(get_db),
+    checker = Depends(require_permission("projects:read"))
+):
+    checker.check_scope("project", project_id)
     service = ProjectService(db)
     project = service.get_project(project_id)
     if not project:
@@ -56,7 +61,9 @@ def update_project(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    checker = Depends(require_permission("projects:update"))
 ):
+    checker.check_scope("project", project_id)
     service = ProjectService(db)
 
     # Capture old state for change detection
@@ -99,7 +106,12 @@ def update_project(
     return project
 
 @router.delete("/{project_id}", status_code=204)
-def delete_project(project_id: str, db: Session = Depends(get_db)):
+def delete_project(
+    project_id: str, 
+    db: Session = Depends(get_db),
+    checker = Depends(require_permission("projects:delete"))
+):
+    checker.check_scope("project", project_id)
     service = ProjectService(db)
     project = service.get_project(project_id)
     if not project:

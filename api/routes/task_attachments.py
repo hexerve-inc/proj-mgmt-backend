@@ -8,7 +8,7 @@ from models.task import Task
 from models.user import User
 from schemas.task_attachment import TaskAttachmentRead
 from services.cloudinary_service import CloudinaryService
-from api.deps import get_current_user
+from api.deps import get_current_user, get_permission_service
 
 router = APIRouter(prefix="/tasks/{task_id}/attachments", tags=["task-attachments"])
 
@@ -17,12 +17,15 @@ def upload_task_attachment(
     task_id: str,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    perm_service = Depends(get_permission_service)
 ):
     # Verify task exists
     task = db.query(Task).filter(Task.id == task_id, Task.deleted_at.is_(None)).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+
+    perm_service.check_permission(current_user.id, "attachments:upload", "project", task.project_id)
 
     # Upload to Cloudinary
     try:
@@ -54,7 +57,8 @@ def delete_task_attachment(
     task_id: str,
     attachment_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    perm_service = Depends(get_permission_service)
 ):
     attachment = db.query(TaskAttachment).filter(
         TaskAttachment.id == attachment_id,
@@ -64,6 +68,8 @@ def delete_task_attachment(
     
     if not attachment:
         raise HTTPException(status_code=404, detail="Attachment not found")
+
+    perm_service.check_permission(current_user.id, "attachments:delete", "project", attachment.task.project_id)
 
     # Delete from Cloudinary
     try:

@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from api.deps import get_db, get_current_user
+from api.deps import get_db, get_current_user, require_permission
 from schemas.user import UserCreate, UserResponse
 from models.user import User
 from services.auth_service import AuthService
 
 router = APIRouter()
 
-@router.get("/", response_model=List[UserResponse])
+@router.get("/", response_model=List[UserResponse], dependencies=[Depends(require_permission("users:read"))])
 def read_users(
     skip: int = 0,
     limit: int = 100,
@@ -24,7 +24,7 @@ def read_user_me(
 ):
     return current_user
 
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_permission("users:create"))])
 def create_user(
     user_in: UserCreate,
     db: Session = Depends(get_db),

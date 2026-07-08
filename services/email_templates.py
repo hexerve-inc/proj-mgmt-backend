@@ -309,25 +309,33 @@ class EmailTemplateEngine:
         self,
         event_type: str,
         context: dict,
+        sender_name: str | None = None,
     ) -> tuple[str, str, str]:
         """
         Returns (subject, html_body, text_body) for the given event type.
 
         The context dict is merged with global settings (app_name, frontend_url)
         and passed to the Jinja2 templates.
+
+        Args:
+            sender_name: Optional override for the sender display name.
+                         When provided (from DB config), it replaces
+                         settings.SMTP_FROM_NAME in the template context.
         """
+        app_name = sender_name or settings.SMTP_FROM_NAME
+
         template_data = EVENT_TEMPLATES.get(event_type)
         if not template_data:
             # Fallback for unknown event types
             return (
-                f"[{settings.SMTP_FROM_NAME}] Notification",
+                f"[{app_name}] Notification",
                 f"<p>You have a new notification.</p>",
                 "You have a new notification.",
             )
 
         # Merge global context
         ctx = {
-            "app_name": settings.SMTP_FROM_NAME,
+            "app_name": app_name,
             "frontend_url": settings.FRONTEND_URL,
             **context,
         }
@@ -348,7 +356,7 @@ class EmailTemplateEngine:
             header_title=template_data["header"],
             content=content_html,
             frontend_url=settings.FRONTEND_URL,
-            app_name=settings.SMTP_FROM_NAME,
+            app_name=app_name,
         )
 
         # Generate plain-text version by stripping HTML tags

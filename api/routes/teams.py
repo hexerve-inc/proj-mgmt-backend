@@ -1,23 +1,28 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from api.deps import get_db
+from api.deps import get_db, require_permission
 from schemas.team import TeamCreate, TeamResponse, TeamUpdate
 from services.team_service import TeamService
 
 router = APIRouter()
 
-@router.post("/", response_model=TeamResponse)
+@router.post("/", response_model=TeamResponse, dependencies=[Depends(require_permission("teams:create"))])
 def create_team(team_in: TeamCreate, db: Session = Depends(get_db)):
     service = TeamService(db)
     return service.create_team(team_in)
 
-@router.get("/", response_model=list[TeamResponse])
+@router.get("/", response_model=list[TeamResponse], dependencies=[Depends(require_permission("teams:read"))])
 def get_teams(db: Session = Depends(get_db)):
     service = TeamService(db)
     return service.get_teams()
 
 @router.get("/{team_id}", response_model=TeamResponse)
-def get_team(team_id: str, db: Session = Depends(get_db)):
+def get_team(
+    team_id: str, 
+    db: Session = Depends(get_db),
+    checker = Depends(require_permission("teams:read"))
+):
+    checker.check_scope("team", team_id)
     service = TeamService(db)
     team = service.get_team(team_id)
     if not team:
@@ -25,7 +30,13 @@ def get_team(team_id: str, db: Session = Depends(get_db)):
     return team
 
 @router.post("/{team_id}/members/{user_id}", response_model=TeamResponse)
-def add_member(team_id: str, user_id: str, db: Session = Depends(get_db)):
+def add_member(
+    team_id: str, 
+    user_id: str, 
+    db: Session = Depends(get_db),
+    checker = Depends(require_permission("teams:manage_members"))
+):
+    checker.check_scope("team", team_id)
     service = TeamService(db)
     team = service.add_member(team_id, user_id)
     if not team:
@@ -33,7 +44,13 @@ def add_member(team_id: str, user_id: str, db: Session = Depends(get_db)):
     return team
 
 @router.delete("/{team_id}/members/{user_id}", response_model=TeamResponse)
-def remove_member(team_id: str, user_id: str, db: Session = Depends(get_db)):
+def remove_member(
+    team_id: str, 
+    user_id: str, 
+    db: Session = Depends(get_db),
+    checker = Depends(require_permission("teams:manage_members"))
+):
+    checker.check_scope("team", team_id)
     service = TeamService(db)
     team = service.remove_member(team_id, user_id)
     if not team:
@@ -41,7 +58,13 @@ def remove_member(team_id: str, user_id: str, db: Session = Depends(get_db)):
     return team
 
 @router.patch("/{team_id}", response_model=TeamResponse)
-def update_team(team_id: str, team_in: TeamUpdate, db: Session = Depends(get_db)):
+def update_team(
+    team_id: str, 
+    team_in: TeamUpdate, 
+    db: Session = Depends(get_db),
+    checker = Depends(require_permission("teams:update"))
+):
+    checker.check_scope("team", team_id)
     service = TeamService(db)
     team = service.update_team(team_id, team_in)
     if not team:
@@ -49,7 +72,12 @@ def update_team(team_id: str, team_in: TeamUpdate, db: Session = Depends(get_db)
     return team
 
 @router.delete("/{team_id}")
-def delete_team(team_id: str, db: Session = Depends(get_db)):
+def delete_team(
+    team_id: str, 
+    db: Session = Depends(get_db),
+    checker = Depends(require_permission("teams:delete"))
+):
+    checker.check_scope("team", team_id)
     service = TeamService(db)
     success = service.delete_team(team_id)
     if not success:

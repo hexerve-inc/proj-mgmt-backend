@@ -7,7 +7,7 @@ from services.sprint_service import SprintService
 from services.notification_service import NotificationService
 from services.notification_events import NotificationEvent
 from models.notification_preference import NotificationEventType
-from api.deps import get_current_user
+from api.deps import get_current_user, require_permission, get_permission_service
 from models.user import User
 
 router = APIRouter()
@@ -25,19 +25,31 @@ def _emit_sprint_notification(event: NotificationEvent):
         db.close()
 
 
-@router.get("/", response_model=List[SprintResponse])
+@router.get("/", response_model=List[SprintResponse], dependencies=[Depends(require_permission("sprints:read"))])
 def get_sprints(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return SprintService.get_all(db)
 
 @router.post("/", response_model=SprintResponse)
-def create_sprint(sprint: SprintCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def create_sprint(
+    sprint: SprintCreate, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user),
+    checker = Depends(require_permission("sprints:create"))
+):
+    checker.check_scope("project", sprint.project_id)
     return SprintService.create(db, sprint)
 
 @router.get("/{sprint_id}", response_model=SprintResponse)
-def get_sprint(sprint_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_sprint(
+    sprint_id: str, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user),
+    perm_service = Depends(get_permission_service)
+):
     db_sprint = SprintService.get_by_id(db, sprint_id)
     if not db_sprint:
         raise HTTPException(status_code=404, detail="Sprint not found")
+    perm_service.check_permission(current_user.id, "sprints:read", "project", db_sprint.project_id)
     return db_sprint
 
 @router.put("/{sprint_id}", response_model=SprintResponse)
@@ -47,11 +59,14 @@ def update_sprint(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    perm_service = Depends(get_permission_service)
 ):
     # Capture old state for change detection
     old_sprint = SprintService.get_by_id(db, sprint_id)
     if not old_sprint:
         raise HTTPException(status_code=404, detail="Sprint not found")
+        
+    perm_service.check_permission(current_user.id, "sprints:update", "project", old_sprint.project_id)
 
     old_status = old_sprint.status
     project_id = old_sprint.project_id
@@ -63,6 +78,9 @@ def update_sprint(
     # Emit sprint lifecycle events based on status transitions
     update_data = sprint.model_dump(exclude_unset=True)
     new_status = update_data.get("status")
+    
+    if new_status and new_status != old_status:
+        perm_service.check_permission(current_user.id, "sprints:start_complete", "project", project_id)
 
     if new_status and new_status != old_status and project_id:
         if new_status == "active":
@@ -98,7 +116,18 @@ def update_sprint(
     return db_sprint
 
 @router.delete("/{sprint_id}")
-def delete_sprint(sprint_id: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def delete_sprint(
+    sprint_id: str, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user),
+    perm_service = Depends(get_permission_service)
+):
+    old_sprint = SprintService.get_by_id(db, sprint_id)
+    if not old_sprint:
+        raise HTTPException(status_code=404, detail="Sprint not found")
+        
+    perm_service.check_permission(current_user.id, "sprints:delete", "project", old_sprint.project_id)
+    
     if not SprintService.delete(db, sprint_id):
         raise HTTPException(status_code=404, detail="Sprint not found")
     return {"message": "Sprint deleted"}

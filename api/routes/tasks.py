@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from api.deps import get_db, get_current_user
+from api.deps import get_db, get_current_user, require_permission, get_permission_service
 from schemas.task import TaskCreate, TaskResponse, TaskUpdate
 from schemas.task_watcher import (
     WatchStatusResponse,
@@ -52,7 +52,7 @@ def _enrich_tasks_with_watcher_data(
     return result
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_permission("tasks:read"))])
 def get_tasks(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -67,7 +67,9 @@ def create_task(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    checker = Depends(require_permission("tasks:create")),
 ):
+    checker.check_scope("project", task_in.project_id)
     project_service = ProjectService(db)
     if not project_service.get_project(task_in.project_id):
         raise HTTPException(status_code=404, detail="Project not found")
@@ -111,7 +113,9 @@ def get_project_tasks(
     project_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    checker = Depends(require_permission("tasks:read")),
 ):
+    checker.check_scope("project", project_id)
     service = TaskService(db)
     tasks = service.get_tasks_for_project(project_id)
     return _enrich_tasks_with_watcher_data(tasks, db, current_user.id)
@@ -121,11 +125,13 @@ def get_task(
     task_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    perm_service = Depends(get_permission_service),
 ):
     service = TaskService(db)
     task = service.get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+    perm_service.check_permission(current_user.id, "tasks:read", "project", task.project_id)
     watcher_service = TaskWatcherService(db)
     task_dict = TaskResponse.model_validate(task).model_dump()
     task_dict["watcher_count"] = watcher_service.get_watcher_count(task_id)
@@ -139,6 +145,7 @@ def update_task(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    perm_service = Depends(get_permission_service),
 ):
     service = TaskService(db)
 
@@ -146,6 +153,15 @@ def update_task(
     old_task = service.get_task(task_id)
     if not old_task:
         raise HTTPException(status_code=404, detail="Task not found")
+
+    has_update = perm_service.has_permission(current_user.id, "tasks:update", "project", old_task.project_id)
+    if not has_update:
+        has_update_own = perm_service.has_permission(current_user.id, "tasks:update_own", "project", old_task.project_id)
+        if not (has_update_own and old_task.assignee_id == current_user.id):
+            raise HTTPException(status_code=403, detail="Insufficient permissions to update this task")
+
+    if task_in.assignee_id is not None and task_in.assignee_id != old_task.assignee_id:
+        perm_service.check_permission(current_user.id, "tasks:assign", "project", old_task.project_id)
 
     old_status_id = old_task.status_id
     old_assignee_id = old_task.assignee_id
@@ -325,6 +341,7 @@ def delete_task(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    perm_service = Depends(get_permission_service),
 ):
     service = TaskService(db)
 
@@ -332,6 +349,8 @@ def delete_task(
     task = service.get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+        
+    perm_service.check_permission(current_user.id, "tasks:delete", "project", task.project_id)
 
     task_code = task.task_code
     task_title = task.title
@@ -368,12 +387,14 @@ def watch_task(
     task_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    perm_service = Depends(get_permission_service),
 ):
     """Current user starts watching the task."""
     service = TaskService(db)
     task = service.get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+    perm_service.check_permission(current_user.id, "watchers:manage_self", "project", task.project_id)
 
     watcher_service = TaskWatcherService(db)
     watcher_service.watch_task(task_id, current_user.id)
@@ -388,12 +409,14 @@ def unwatch_task(
     task_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    perm_service = Depends(get_permission_service),
 ):
     """Current user stops watching the task."""
     service = TaskService(db)
     task = service.get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+    perm_service.check_permission(current_user.id, "watchers:manage_self", "project", task.project_id)
 
     watcher_service = TaskWatcherService(db)
     watcher_service.unwatch_task(task_id, current_user.id)
@@ -408,12 +431,14 @@ def get_task_watchers(
     task_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    perm_service = Depends(get_permission_service),
 ):
     """List all users watching this task."""
     service = TaskService(db)
     task = service.get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+    perm_service.check_permission(current_user.id, "tasks:read", "project", task.project_id)
 
     watcher_service = TaskWatcherService(db)
     watchers = watcher_service.get_task_watchers_with_since(task_id)
@@ -428,8 +453,13 @@ def get_watch_status(
     task_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    perm_service = Depends(get_permission_service),
 ):
     """Check if current user is watching this task."""
+    service = TaskService(db)
+    task = service.get_task(task_id)
+    if task:
+        perm_service.check_permission(current_user.id, "tasks:read", "project", task.project_id)
     watcher_service = TaskWatcherService(db)
     return WatchStatusResponse(
         watching=watcher_service.is_watching(task_id, current_user.id),

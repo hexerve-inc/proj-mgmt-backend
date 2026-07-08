@@ -25,3 +25,29 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+# ── Fernet symmetric encryption for sensitive config values ──────
+
+import base64
+import hashlib
+from cryptography.fernet import Fernet
+
+def _get_fernet() -> Fernet:
+    """Derive a deterministic Fernet key from SECRET_KEY.
+
+    Uses SHA-256 to produce a 32-byte key, then base64url-encodes it
+    to satisfy Fernet's key format requirement.
+    """
+    key_bytes = hashlib.sha256(SECRET_KEY.encode()).digest()
+    return Fernet(base64.urlsafe_b64encode(key_bytes))
+
+
+def encrypt_value(plaintext: str) -> str:
+    """Encrypt a plaintext string. Returns a Fernet token (str)."""
+    return _get_fernet().encrypt(plaintext.encode()).decode()
+
+
+def decrypt_value(ciphertext: str) -> str:
+    """Decrypt a Fernet token back to plaintext."""
+    return _get_fernet().decrypt(ciphertext.encode()).decode()

@@ -1,14 +1,9 @@
 import uuid
-from sqlalchemy import Column, String, Enum
+from sqlalchemy import Column, String, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from core.database import Base
 from models.soft_delete_mixin import SoftDeleteMixin
 import enum
-
-class RoleEnum(str, enum.Enum):
-    ADMIN = "ADMIN"
-    MANAGER = "MANAGER"
-    MEMBER = "MEMBER"
 
 class User(SoftDeleteMixin, Base):
     __tablename__ = "users"
@@ -17,5 +12,21 @@ class User(SoftDeleteMixin, Base):
     name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    role = Column(Enum(RoleEnum, name="role_enum"), default=RoleEnum.MEMBER, nullable=False)
+
+    # New RBAC: default system-level role (quick lookup without joining user_roles)
+    system_role_id = Column(
+        String,
+        ForeignKey("roles.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    # ── Relationships ────────────────────────────────────────────
     custom_filters = relationship("CustomFilter", back_populates="user", cascade="all, delete-orphan")
+    system_role = relationship("Role", foreign_keys=[system_role_id])
+    user_roles = relationship(
+        "UserRole",
+        back_populates="user",
+        foreign_keys="UserRole.user_id",
+        cascade="all, delete-orphan",
+    )
+

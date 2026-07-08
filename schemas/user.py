@@ -1,14 +1,14 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from models.user import RoleEnum
 
 class UserBase(BaseModel):
     name: str
     email: EmailStr
-    role: RoleEnum = RoleEnum.MEMBER
+    pass
 
 class UserCreate(UserBase):
     password: str
+    system_role_id: Optional[str] = None
 
 class UserResponse(UserBase):
     id: str
