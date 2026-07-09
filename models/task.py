@@ -40,7 +40,7 @@ class Task(SoftDeleteMixin, Base):
     parent = relationship("Task", remote_side=[id], back_populates="subtasks")
     subtasks = relationship("Task", back_populates="parent", cascade="all, delete-orphan")
     attachments = relationship("TaskAttachment", back_populates="task", cascade="all, delete-orphan")
-    watchers = relationship("TaskWatcher", back_populates="task", cascade="all, delete-orphan")
+    watcher_records = relationship("TaskWatcher", back_populates="task", cascade="all, delete-orphan")
     
     
     # New grouping and labels

@@ -10,6 +10,11 @@ class WatchStatusResponse(BaseModel):
     watcher_count: int
 
 
+class AssignWatcherRequest(BaseModel):
+    """Request body for assigning a specific user as a watcher."""
+    user_id: str
+
+
 class TaskWatcherUserResponse(BaseModel):
     """A single watcher entry with user info and subscription date."""
     id: str

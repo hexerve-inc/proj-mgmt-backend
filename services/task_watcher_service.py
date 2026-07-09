@@ -195,6 +195,36 @@ class TaskWatcherService:
         )
         return {row.task_id: row.cnt for row in rows}
 
+    def get_watchers_bulk(self, task_ids: list[str]) -> dict[str, list[dict]]:
+        """
+        Return watchers for multiple tasks. Returns a dict of task_id -> list of user dicts.
+        """
+        if not task_ids:
+            return {}
+
+        watcher_records = (
+            self.db.query(TaskWatcher, User)
+            .join(User, TaskWatcher.user_id == User.id)
+            .filter(
+                TaskWatcher.task_id.in_(task_ids),
+                TaskWatcher.deleted_at.is_(None),
+                User.deleted_at.is_(None)
+            )
+            .all()
+        )
+
+        # Import locally to avoid circular dependency
+        from schemas.user import UserResponse
+
+        result = {}
+        for w, u in watcher_records:
+            if w.task_id not in result:
+                result[w.task_id] = []
+            
+            result[w.task_id].append(UserResponse.model_validate(u).model_dump())
+
+        return result
+
     def get_watching_status_bulk(
         self, task_ids: list[str], user_id: str
     ) -> dict[str, bool]:

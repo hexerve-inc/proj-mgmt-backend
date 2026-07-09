@@ -72,6 +72,7 @@ class TaskResponse(BaseModel):
     attachments: list[TaskAttachmentRead] = []
     watcher_count: Optional[int] = 0
     is_watching: Optional[bool] = False
+    watchers: list[UserResponse] = []
 
     class Config:
         from_attributes = True
