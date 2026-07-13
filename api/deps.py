@@ -39,6 +39,14 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
     user = auth_service.get_user_by_email(email=token_data.email)
     if user is None:
         raise credentials_exception
+
+    if user.password_changed_at:
+        iat = payload.get("iat")
+        if iat:
+            from datetime import datetime, timezone
+            if datetime.fromtimestamp(iat, tz=timezone.utc) < user.password_changed_at:
+                raise credentials_exception
+
     return user
 
 

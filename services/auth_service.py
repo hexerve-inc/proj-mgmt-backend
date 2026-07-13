@@ -89,3 +89,10 @@ class AuthService:
             return None
         return user
 
+    def update_password(self, user_id: str, new_hashed_password: str) -> None:
+        import datetime
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if user:
+            user.hashed_password = new_hashed_password
+            user.password_changed_at = datetime.datetime.now(datetime.timezone.utc)
+            self.db.commit()
