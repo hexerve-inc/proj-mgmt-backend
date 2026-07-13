@@ -154,7 +154,7 @@ ROLE_PERMS = {
     ],
     "developer": [
         "projects:read",
-        "tasks:create", "tasks:read", "tasks:update", "tasks:update_own", "tasks:delete_own",
+        "tasks:create", "tasks:read", "tasks:update", "tasks:update_own", "tasks:delete_own", "tasks:assign",
         "sprints:read",
         "teams:read",
         "time_entries:create", "time_entries:read_own", "time_entries:update_own",
