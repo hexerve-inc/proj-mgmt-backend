@@ -205,7 +205,12 @@ def delete_time_entry(
     if not entry:
         raise HTTPException(status_code=404, detail="Time entry not found")
         
-    perm_service.check_permission(current_user.id, "time_entries:delete", "project", entry.task.project_id)
+    if entry.user_id == current_user.id:
+        has_delete_all = perm_service.has_permission(current_user.id, "time_entries:delete", "project", entry.task.project_id)
+        if not has_delete_all:
+            perm_service.check_permission(current_user.id, "time_entries:delete_own", "project", entry.task.project_id)
+    else:
+        perm_service.check_permission(current_user.id, "time_entries:delete", "project", entry.task.project_id)
     
     success = service.delete_entry(entry_id)
     if not success:
