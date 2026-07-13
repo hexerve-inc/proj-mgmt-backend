@@ -31,3 +31,7 @@ class User(SoftDeleteMixin, Base):
         cascade="all, delete-orphan",
     )
 
+    @property
+    def role(self):
+        """Expose the system role name for the frontend."""
+        return self.system_role.name if self.system_role else None

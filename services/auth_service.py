@@ -5,7 +5,6 @@ from core.security import get_password_hash, verify_password, create_access_toke
 from typing import Optional
 import uuid
 
-
 class AuthService:
     def __init__(self, db: Session):
         self.db = db
