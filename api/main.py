@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from api.routes import projects, tasks, teams, clients, programs, time_entries, invoices, auth, users, portfolios, sprints, workflow_statuses, custom_filters, notifications, task_attachments, analytics
+from api.routes import projects, tasks, teams, clients, programs, time_entries, invoices, auth, users, portfolios, sprints, workflow_statuses, custom_filters, notifications, task_attachments, roles, email_config, analytics
 
 api_router = APIRouter()
 
@@ -20,5 +20,7 @@ api_router.include_router(sprints.router, prefix="/sprints", tags=["sprints"])
 api_router.include_router(custom_filters.router, prefix="/projects", tags=["custom_filters"])
 api_router.include_router(notifications.router, prefix="/users", tags=["notifications"])
 api_router.include_router(task_attachments.router, tags=["task-attachments"])
+api_router.include_router(roles.router, tags=["roles"])
+api_router.include_router(email_config.router, prefix="/settings", tags=["email-config"])
 
 

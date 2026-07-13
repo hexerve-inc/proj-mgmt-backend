@@ -49,7 +49,6 @@ class NotificationService:
 
     def __init__(self, db: Session):
         self.db = db
-        self.transport = EmailTransport.get_transport()
         self.template_engine = EmailTemplateEngine()
 
     # ── Public API ───────────────────────────────────────────────
@@ -198,16 +197,20 @@ class NotificationService:
             **event.metadata,
         }
 
-        # 5. Render email
+        # 5. Resolve dynamic transport + sender name from DB config
+        transport = EmailTransport.get_transport(db=self.db)
+        sender_name = self._get_sender_name()
+
+        # 6. Render email
         subject, html_body, text_body = self.template_engine.render(
-            event.event_type.value, context
+            event.event_type.value, context, sender_name=sender_name
         )
 
-        # 6. Send via transport
+        # 7. Send via transport
         status = "sent"
         error_message = None
         try:
-            await self.transport.send(
+            await transport.send(
                 to=recipient.email,
                 subject=subject,
                 html_body=html_body,
@@ -218,7 +221,7 @@ class NotificationService:
             error_message = str(e)
             logger.error(f"Failed to send to {recipient.email}: {e}")
 
-        # 7. Log result
+        # 8. Log result
         self._log_notification(
             user_id=recipient.id,
             event_type=event.event_type.value,
@@ -319,6 +322,25 @@ class NotificationService:
                     unique.append(wu)
 
         return unique
+
+    # ── Dynamic Config Helpers ───────────────────────────────────
+
+    def _get_sender_name(self) -> str | None:
+        """Get the sender display name from the active DB email config.
+
+        Returns None to let the template engine fall back to
+        settings.SMTP_FROM_NAME.
+        """
+        try:
+            from services.email_config_service import EmailConfigService
+
+            service = EmailConfigService(self.db)
+            config = service.get_active_config()
+            if config and config.is_enabled:
+                return config.sender_name
+        except Exception:
+            pass
+        return None
 
     # ── Preference Check ─────────────────────────────────────────
 

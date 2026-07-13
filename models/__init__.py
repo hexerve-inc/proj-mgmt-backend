@@ -1,5 +1,5 @@
 from .soft_delete_mixin import SoftDeleteMixin
-from .user import User, RoleEnum
+from .user import User
 from .project import Project, ProjectStatus
 from .task import Task, Priority
 from .workflow_status import WorkflowStatus, WorkflowGroup
@@ -17,3 +17,9 @@ from .notification_preference import NotificationPreference, NotificationEventTy
 from .notification_log import NotificationLog
 from .task_attachment import TaskAttachment
 from .task_watcher import TaskWatcher
+from .role import Role
+from .permission import Permission
+from .role_permission import RolePermission
+from .user_role import UserRole
+from .role_audit_log import RoleAuditLog
+from .email_configuration import EmailConfiguration
