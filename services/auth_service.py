@@ -5,7 +5,6 @@ from core.security import get_password_hash, verify_password, create_access_toke
 from typing import Optional
 import uuid
 
-
 class AuthService:
     def __init__(self, db: Session):
         self.db = db
@@ -89,3 +88,10 @@ class AuthService:
             return None
         return user
 
+    def update_password(self, user_id: str, new_hashed_password: str) -> None:
+        import datetime
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if user:
+            user.hashed_password = new_hashed_password
+            user.password_changed_at = datetime.datetime.now(datetime.timezone.utc)
+            self.db.commit()

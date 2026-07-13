@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Enum, ForeignKey
+from sqlalchemy import Column, String, Enum, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from core.database import Base
 from models.soft_delete_mixin import SoftDeleteMixin
@@ -12,6 +12,7 @@ class User(SoftDeleteMixin, Base):
     name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
+    password_changed_at = Column(DateTime(timezone=True), nullable=True)
 
     # New RBAC: default system-level role (quick lookup without joining user_roles)
     system_role_id = Column(
@@ -30,3 +31,7 @@ class User(SoftDeleteMixin, Base):
         cascade="all, delete-orphan",
     )
 
+    @property
+    def role(self):
+        """Expose the system role name for the frontend."""
+        return self.system_role.name if self.system_role else None

@@ -12,6 +12,7 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     id: str
+    role: Optional[str] = None
 
     class Config:
         from_attributes = True

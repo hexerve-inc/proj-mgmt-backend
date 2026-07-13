@@ -295,6 +295,26 @@ EVENT_TEMPLATES: dict[str, dict[str, str]] = {
   <a href="{{ frontend_url }}/projects" class="btn">View Project →</a>
 </div>
 """,
+    },
+    "PASSWORD_RESET": {
+        "subject": "Reset your {{ app_name }} password",
+        "header": "Password Reset Request",
+        "content": """\
+<h2>Reset Your Password</h2>
+<p>Hi {{ user_name }},</p>
+<p>We received a request to reset your password. Click the button below to set a new password:</p>
+<div class="btn-wrapper">
+  <a href="{{ reset_url }}" class="btn">Reset Password →</a>
+</div>
+<div class="detail-card">
+  <div class="label">Important</div>
+  <div class="value">This link expires in {{ expiry_minutes }} minutes. If you didn't request this, you can safely ignore this email.</div>
+</div>
+<p style="color: #94a3b8; font-size: 13px; margin-top: 24px;">
+  If the button doesn't work, copy and paste this URL into your browser:<br/>
+  <a href="{{ reset_url }}" style="color: #6366f1; word-break: break-all;">{{ reset_url }}</a>
+</p>
+""",
     }
 }
 
