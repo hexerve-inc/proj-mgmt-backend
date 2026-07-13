@@ -23,6 +23,7 @@ PERMISSIONS = [
     ("tasks:update", "tasks", "update", "Update tasks"),
     ("tasks:update_own", "tasks", "update_own", "Update own tasks"),
     ("tasks:delete", "tasks", "delete", "Delete tasks"),
+    ("tasks:delete_own", "tasks", "delete_own", "Delete own tasks"),
     ("tasks:assign", "tasks", "assign", "Assign tasks"),
     ("tasks:move_sprint", "tasks", "move_sprint", "Move sprint"),
     ("tasks:bulk_update", "tasks", "bulk_update", "Bulk update tasks"),
@@ -153,7 +154,7 @@ ROLE_PERMS = {
     ],
     "developer": [
         "projects:read",
-        "tasks:create", "tasks:read", "tasks:update", "tasks:update_own",
+        "tasks:create", "tasks:read", "tasks:update", "tasks:update_own", "tasks:delete_own",
         "sprints:read",
         "teams:read",
         "time_entries:create", "time_entries:read_own", "time_entries:update_own",
