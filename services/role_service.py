@@ -14,11 +14,13 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from models.role import Role
+from models.user import User
 from models.permission import Permission
 from models.role_permission import RolePermission
 from models.user_role import UserRole
 from models.role_audit_log import RoleAuditLog
 from services.permission_service import PermissionService
+from core.security import SUPER_ADMIN_EMAIL
 
 
 class RoleService:
@@ -200,6 +202,11 @@ class RoleService:
         role = self.get_role(role_id)
         if not role:
             raise HTTPException(status_code=404, detail="Role not found")
+            
+        if role.slug == "super_admin":
+            user = self.db.query(User).filter(User.id == user_id).first()
+            if not user or user.email != SUPER_ADMIN_EMAIL:
+                raise HTTPException(status_code=403, detail="Cannot assign super admin role to this user.")
 
         # Privilege escalation check
         if actor_id:
@@ -268,6 +275,10 @@ class RoleService:
         actor_id: Optional[str] = None,
     ) -> bool:
         """Soft-revoke a role assignment."""
+        role = self.get_role(role_id)
+        if role and role.slug == "super_admin":
+            raise HTTPException(status_code=403, detail="Cannot revoke super admin role.")
+            
         query = self.db.query(UserRole).filter(
             UserRole.user_id == user_id,
             UserRole.role_id == role_id,
@@ -286,7 +297,6 @@ class RoleService:
 
         assignment.revoked_at = datetime.now(timezone.utc)
 
-        role = self.get_role(role_id)
         self._audit(
             user_id=user_id,
             actor_id=actor_id or "system",

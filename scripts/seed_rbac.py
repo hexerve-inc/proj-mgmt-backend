@@ -15,6 +15,7 @@ PERMISSIONS = [
     ("projects:read", "projects", "read", "Read projects"),
     ("projects:update", "projects", "update", "Update projects"),
     ("projects:delete", "projects", "delete", "Delete projects"),
+    ("projects:delete_own", "projects", "delete_own", "Delete own projects"),
     ("projects:archive", "projects", "archive", "Archive projects"),
     ("projects:configure", "projects", "configure", "Configure projects"),
     # Tasks
@@ -23,6 +24,7 @@ PERMISSIONS = [
     ("tasks:update", "tasks", "update", "Update tasks"),
     ("tasks:update_own", "tasks", "update_own", "Update own tasks"),
     ("tasks:delete", "tasks", "delete", "Delete tasks"),
+    ("tasks:delete_own", "tasks", "delete_own", "Delete own tasks"),
     ("tasks:assign", "tasks", "assign", "Assign tasks"),
     ("tasks:move_sprint", "tasks", "move_sprint", "Move sprint"),
     ("tasks:bulk_update", "tasks", "bulk_update", "Bulk update tasks"),
@@ -38,6 +40,7 @@ PERMISSIONS = [
     ("teams:read", "teams", "read", "Read teams"),
     ("teams:update", "teams", "update", "Update teams"),
     ("teams:delete", "teams", "delete", "Delete teams"),
+    ("teams:delete_own", "teams", "delete_own", "Delete own teams"),
     ("teams:manage_members", "teams", "manage_members", "Manage team members"),
     # Portfolios
     ("portfolios:create", "portfolios", "create", "Create portfolios"),
@@ -64,6 +67,7 @@ PERMISSIONS = [
     ("time_entries:read", "time_entries", "read", "Read time entries"),
     ("time_entries:read_own", "time_entries", "read_own", "Read own time entries"),
     ("time_entries:update_own", "time_entries", "update_own", "Update own time entries"),
+    ("time_entries:delete_own", "time_entries", "delete_own", "Delete own time entries"),
     ("time_entries:delete", "time_entries", "delete", "Delete time entries"),
     # Attachments
     ("attachments:upload", "attachments", "upload", "Upload attachments"),
@@ -134,10 +138,10 @@ ROLE_PERMS = {
     "super_admin": ["*"],
     "org_admin": ["*"],
     "project_mgr": [
-        "projects:read", "projects:update", "projects:archive", "projects:configure",
+        "projects:create", "projects:read", "projects:update", "projects:delete_own", "projects:archive", "projects:configure",
         "tasks:create", "tasks:read", "tasks:update", "tasks:update_own", "tasks:delete", "tasks:assign", "tasks:move_sprint", "tasks:bulk_update", "tasks:export",
         "sprints:create", "sprints:read", "sprints:update", "sprints:delete", "sprints:start_complete",
-        "teams:read", "teams:update", "teams:manage_members",
+        "teams:create", "teams:read", "teams:update", "teams:delete_own", "teams:manage_members",
         "portfolios:read", "programs:read", "clients:read",
         "invoices:create", "invoices:read", "invoices:update",
         "time_entries:create", "time_entries:read", "time_entries:read_own", "time_entries:update_own", "time_entries:delete",
@@ -153,14 +157,15 @@ ROLE_PERMS = {
     ],
     "developer": [
         "projects:read",
-        "tasks:create", "tasks:read", "tasks:update", "tasks:update_own",
+        "tasks:create", "tasks:read", "tasks:update", "tasks:update_own", "tasks:delete_own", "tasks:assign",
         "sprints:read",
-        "teams:read",
-        "time_entries:create", "time_entries:read_own", "time_entries:update_own",
+        "teams:create", "teams:read", "teams:update", "teams:delete", "teams:manage_members",
+        "time_entries:create", "time_entries:read_own", "time_entries:update_own", "time_entries:delete_own",
         "attachments:upload", "attachments:download", "attachments:delete",
-        "comments:create", "comments:read", "comments:update_own",
+        "comments:create", "comments:read", "comments:update_own", "comments:delete",
         "watchers:manage_self",
         "users:read", "workflow:read",
+        "portfolios:read", "programs:read", "clients:read", "invoices:read", "analytics:read",
         "filters:create", "filters:read_own", "filters:update_own", "filters:delete_own",
         "notifications:read_own", "notifications:configure_own",
         "ai:use"
@@ -299,7 +304,68 @@ def seed_rbac_from_connection(conn):
     else:
         print("Legacy 'role' column not found on users table. Skipping user migration.")
 
+    # 5. Provision Super Admin User
+    seed_super_admin(conn)
+
     print("RBAC seeding complete.")
+
+def seed_super_admin(conn):
+    from core.security import SUPER_ADMIN_EMAIL, get_password_hash
+    print("Ensuring Super Admin user exists...")
+    
+    existing_user = conn.execute(
+        text("SELECT id FROM users WHERE email = :email"),
+        {"email": SUPER_ADMIN_EMAIL}
+    ).fetchone()
+    
+    role_id_row = conn.execute(
+        text("SELECT id FROM roles WHERE slug = 'super_admin'")
+    ).fetchone()
+    
+    if not role_id_row:
+        print("Super admin role not found, skipping.")
+        return
+        
+    role_id = role_id_row[0]
+    
+    if existing_user:
+        user_id = existing_user[0]
+        conn.execute(
+            text("UPDATE users SET system_role_id = :role_id WHERE id = :user_id"),
+            {"role_id": role_id, "user_id": user_id}
+        )
+    else:
+        user_id = str(uuid.uuid4())
+        hashed_password = get_password_hash("Hexerve@123")
+        conn.execute(
+            text("""
+                INSERT INTO users (id, name, email, hashed_password, system_role_id, created_at, updated_at) 
+                VALUES (:id, :name, :email, :pwd, :role_id, :now, :now)
+            """),
+            {
+                "id": user_id, 
+                "name": "Super Admin", 
+                "email": SUPER_ADMIN_EMAIL, 
+                "pwd": hashed_password, 
+                "role_id": role_id, 
+                "now": datetime.now(timezone.utc)
+            }
+        )
+        print(f"Created Super Admin: {SUPER_ADMIN_EMAIL}")
+        
+    existing_ur = conn.execute(
+        text("SELECT id FROM user_roles WHERE user_id = :user_id AND role_id = :role_id AND scope_type = 'global'"),
+        {"user_id": user_id, "role_id": role_id}
+    ).fetchone()
+    
+    if not existing_ur:
+        conn.execute(
+            text("""
+                INSERT INTO user_roles (id, user_id, role_id, scope_type, assigned_at, created_at, updated_at) 
+                VALUES (:id, :user_id, :role_id, 'global', :now, :now, :now)
+            """),
+            {"id": str(uuid.uuid4()), "user_id": user_id, "role_id": role_id, "now": datetime.now(timezone.utc)}
+        )
 
 def seed():
     from core.database import engine
@@ -308,3 +374,4 @@ def seed():
 
 if __name__ == "__main__":
     seed()
+

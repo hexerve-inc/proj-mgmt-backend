@@ -346,7 +346,11 @@ def delete_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
         
-    perm_service.check_permission(current_user.id, "tasks:delete", "project", task.project_id)
+    has_delete = perm_service.has_permission(current_user.id, "tasks:delete", "project", task.project_id)
+    if not has_delete:
+        has_delete_own = perm_service.has_permission(current_user.id, "tasks:delete_own", "project", task.project_id)
+        if not (has_delete_own and task.assignee_id == current_user.id):
+            raise HTTPException(status_code=403, detail="Insufficient permissions to delete this task")
 
     task_code = task.task_code
     task_title = task.title

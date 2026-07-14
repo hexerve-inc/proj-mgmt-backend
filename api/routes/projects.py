@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from api.deps import get_db, get_current_user, require_permission
+from api.deps import get_db, get_current_user, require_permission, require_any_permission, get_permission_service
 from schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
 from services.project_service import ProjectService
 from services.notification_service import NotificationService
@@ -24,10 +24,10 @@ def _emit_project_notification(event: NotificationEvent):
 
 
 @router.post("/", response_model=ProjectResponse, dependencies=[Depends(require_permission("projects:create"))])
-def create_project(project_in: ProjectCreate, db: Session = Depends(get_db)):
+def create_project(project_in: ProjectCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     service = ProjectService(db)
     try:
-        return service.create_project(project_in)
+        return service.create_project(project_in, actor_id=current_user.id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 
@@ -105,16 +105,25 @@ def update_project(
 
     return project
 
-@router.delete("/{project_id}", status_code=204)
+@router.delete("/{project_id}", status_code=204, dependencies=[Depends(require_any_permission("projects:delete", "projects:delete_own"))])
 def delete_project(
     project_id: str, 
     db: Session = Depends(get_db),
-    checker = Depends(require_permission("projects:delete"))
+    current_user: User = Depends(get_current_user),
+    perm_service = Depends(get_permission_service)
 ):
-    checker.check_scope("project", project_id)
     service = ProjectService(db)
     project = service.get_project(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+        
+    # Check if they have the global delete permission
+    has_global_delete = perm_service.has_permission(current_user.id, "projects:delete", scope_type="project", scope_id=project_id)
+    
+    if not has_global_delete:
+        # If they only have delete_own, they MUST be the creator
+        if project.created_by_id != current_user.id:
+            raise HTTPException(status_code=403, detail="You can only delete projects that you created.")
+
     service.delete_project(project_id)
 

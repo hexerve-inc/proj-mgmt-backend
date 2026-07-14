@@ -23,6 +23,7 @@ class Team(SoftDeleteMixin, Base):
     lead_id = Column(String, ForeignKey('users.id', ondelete="SET NULL"), nullable=True)
     product_manager_id = Column(String, ForeignKey('users.id', ondelete="SET NULL"), nullable=True)
     scrum_master_id = Column(String, ForeignKey('users.id', ondelete="SET NULL"), nullable=True)
+    created_by_id = Column(String, ForeignKey('users.id', ondelete="SET NULL"), nullable=True)
 
     project_manager = relationship("User", foreign_keys=[project_manager_id])
     lead = relationship("User", foreign_keys=[lead_id])
