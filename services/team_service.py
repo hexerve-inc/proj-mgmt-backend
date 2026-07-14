@@ -9,8 +9,9 @@ class TeamService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_team(self, team_in: TeamCreate) -> Team:
+    def create_team(self, team_in: TeamCreate, actor_id: Optional[str] = None) -> Team:
         data = team_in.model_dump(exclude={"member_ids", "project_ids"})
+        data["created_by_id"] = actor_id
         team = Team(**data)
         
         if team_in.member_ids:

@@ -22,6 +22,7 @@ class Project(SoftDeleteMixin, Base):
     team_id = Column(String, ForeignKey("teams.id", ondelete="CASCADE"), nullable=True)
     client_id = Column(String, ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
     program_id = Column(String, ForeignKey("programs.id", ondelete="SET NULL"), nullable=True)
+    created_by_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
     progress = Column(Integer, default=0)

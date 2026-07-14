@@ -11,7 +11,7 @@ class ProjectService:
     def __init__(self, db: Session):
         self.db = db
         
-    def create_project(self, project_in: ProjectCreate) -> Project:
+    def create_project(self, project_in: ProjectCreate, actor_id: Optional[str] = None) -> Project:
         normalized_name = project_in.name.strip()
         normalized_key = self._normalize_project_key(project_in.project_key, normalized_name)
 
@@ -34,6 +34,7 @@ class ProjectService:
         project_payload = project_in.model_dump()
         project_payload["name"] = normalized_name
         project_payload["project_key"] = normalized_key
+        project_payload["created_by_id"] = actor_id
 
         project = Project(**project_payload)
         self.db.add(project)

@@ -8,6 +8,8 @@ SECRET_KEY = "SUPER_SECRET_KEY_CHANGE_ME" # TODO: Move to .env
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
+SUPER_ADMIN_EMAIL = "superadmin@hexerve.com"
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
