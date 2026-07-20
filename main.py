@@ -43,15 +43,41 @@ async def lifespan(app: FastAPI):
     yield
  
 # Initialize FastAPI with the lifespan handler
-app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
- 
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan, redirect_slashes=False)
+
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "https://proj-mgmt-fe-two.vercel.app"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from fastapi.responses import JSONResponse
+from starlette.requests import Request
+import traceback
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Ensure CORS headers are present even on unhandled 500 errors."""
+    print("Unhandled exception:", exc)
+    traceback.print_exc()
+    origin = request.headers.get("origin")
+    headers = {}
+    if origin in ALLOWED_ORIGINS:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+        
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+        headers=headers
+    )
  
 # Connect API Router with v1 prefix
 app.include_router(api_router, prefix="/api/v1")
