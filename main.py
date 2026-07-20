@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
     yield
  
 # Initialize FastAPI with the lifespan handler
-app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan, redirect_slashes=False)
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
