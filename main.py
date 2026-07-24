@@ -43,8 +43,7 @@ async def lifespan(app: FastAPI):
     yield
  
 # Initialize FastAPI with the lifespan handler
-app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
-
+app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan) 
 ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "https://proj-mgmt-fe-two.vercel.app"

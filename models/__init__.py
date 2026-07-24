@@ -24,3 +24,4 @@ from .user_role import UserRole
 from .role_audit_log import RoleAuditLog
 from .email_configuration import EmailConfiguration
 from .password_reset_token import PasswordResetToken
+from .template_status import TemplateStatus

@@ -32,6 +32,12 @@ class ProjectService:
             raise ValueError("Project key already exists. Please choose a different project key.")
 
         project_payload = project_in.model_dump()
+        template_id = project_payload.get("template_id", "tpl-blank")
+        custom_statuses = project_payload.pop("custom_statuses", None)
+        
+        # Ensure the payload has the default template_id if it was None
+        project_payload["template_id"] = template_id
+        
         project_payload["name"] = normalized_name
         project_payload["project_key"] = normalized_key
         project_payload["created_by_id"] = actor_id
@@ -42,7 +48,7 @@ class ProjectService:
         try:
             self.db.flush()
             ws_service = WorkflowStatusService(self.db)
-            ws_service.seed_defaults(project.id)
+            ws_service.seed_defaults(project.id, template_id, custom_statuses=custom_statuses)
             self.db.commit()
         except IntegrityError:
             self.db.rollback()
@@ -55,10 +61,26 @@ class ProjectService:
         return project
 
     def get_projects(self) -> list[Project]:
-        return self.db.query(Project).filter(Project.deleted_at.is_(None)).all()
+        from sqlalchemy.orm import joinedload
+        projects = self.db.query(Project).options(joinedload(Project.workflow_statuses)).filter(Project.deleted_at.is_(None)).all()
+        for p in projects:
+            p.template_id = 'tpl-blank'
+            for ws in p.workflow_statuses:
+                if ws.name in ["Lead In", "Waiting on Client"]: # Keeping Lead In for backwards compatibility with existing projects
+                    p.template_id = 'tpl-lead'
+                    break
+        return projects
         
     def get_project(self, project_id: str) -> Optional[Project]:
-        return self.db.query(Project).filter(Project.id == project_id, Project.deleted_at.is_(None)).first()
+        from sqlalchemy.orm import joinedload
+        project = self.db.query(Project).options(joinedload(Project.workflow_statuses)).filter(Project.id == project_id, Project.deleted_at.is_(None)).first()
+        if project:
+            project.template_id = 'tpl-blank'
+            for ws in project.workflow_statuses:
+                if ws.name in ["Lead In", "Waiting on Client"]: # Keeping Lead In for backwards compatibility with existing projects
+                    project.template_id = 'tpl-lead'
+                    break
+        return project
 
     def update_project(self, project_id: str, project_in: ProjectUpdate) -> Optional[Project]:
         project = self.get_project(project_id)

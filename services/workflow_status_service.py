@@ -12,6 +12,7 @@ from schemas.workflow_status import (
     WorkflowStatusUpdate,
     WorkflowStatusReorderItem,
 )
+from models.template_status import TemplateStatus
 
 # Default statuses seeded for every new project
 DEFAULT_STATUSES = [
@@ -263,8 +264,13 @@ class WorkflowStatusService:
 
     # ── Seed Defaults ────────────────────────────────────────────
 
-    def seed_defaults(self, project_id: str) -> list[WorkflowStatus]:
-        """Create the four default statuses for a newly created project."""
+    def seed_defaults(
+        self,
+        project_id: str,
+        template_id: Optional[str] = None,
+        custom_statuses: Optional[list[dict]] = None,
+    ) -> list[WorkflowStatus]:
+        """Create the default statuses for a newly created project based on template or custom input."""
         # Idempotency check: if project already has statuses, do not duplicate them.
         existing_count = (
             self.db.query(func.count(WorkflowStatus.id))
@@ -274,19 +280,57 @@ class WorkflowStatusService:
         if existing_count > 0:
             return self.get_statuses(project_id)
 
+        statuses_to_create = []
+
+        if custom_statuses:
+            # User has provided a custom list of statuses from the "Select Your Statuses" modal
+            statuses_to_create = custom_statuses
+        elif template_id:
+            # Query the database for the template's default statuses
+            db_statuses = (
+                self.db.query(TemplateStatus)
+                .filter(
+                    TemplateStatus.template_id == template_id,
+                    TemplateStatus.deleted_at.is_(None)
+                )
+                .order_by(TemplateStatus.position)
+                .all()
+            )
+            if db_statuses:
+                for s in db_statuses:
+                    statuses_to_create.append({
+                        "name": s.name,
+                        "group_key": s.group_key,
+                        "color": s.color,
+                        "position": s.position,
+                        "is_default": s.is_default,
+                        "template_status_id": s.id,
+                    })
+
+        # Fallback to hardcoded DEFAULT_STATUSES if nothing was found
+        if not statuses_to_create:
+            statuses_to_create = DEFAULT_STATUSES
+
         created = []
-        for entry in DEFAULT_STATUSES:
+        for entry in statuses_to_create:
             slug = self._slugify(entry["name"])
             slug = self._ensure_unique_slug(project_id, slug)
+            
+            # Map string group_key to enum if necessary
+            group_key_val = entry["group_key"]
+            if isinstance(group_key_val, str):
+                group_key_val = WorkflowGroup(group_key_val)
+
             status = WorkflowStatus(
                 id=str(uuid.uuid4()),
                 project_id=project_id,
                 name=entry["name"],
                 slug=slug,
-                group_key=entry["group_key"],
-                color=entry["color"],
-                position=entry["position"],
-                is_default=entry["is_default"],
+                group_key=group_key_val,
+                color=entry.get("color", "#6B7280"),
+                position=entry.get("position", 0),
+                is_default=entry.get("is_default", False),
+                template_status_id=entry.get("template_status_id"),
             )
             self.db.add(status)
             created.append(status)

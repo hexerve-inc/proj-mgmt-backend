@@ -54,6 +54,11 @@ class WorkflowStatus(SoftDeleteMixin, Base):
     icon = Column(String(50), nullable=True)
     position = Column(Integer, default=0, nullable=False)
     is_default = Column(Boolean, default=False, nullable=False)
+    template_status_id = Column(
+        String,
+        ForeignKey("template_statuses.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     # created_at, updated_at, deleted_at inherited from SoftDeleteMixin
 
     # ── Constraints ──────────────────────────────────────────────

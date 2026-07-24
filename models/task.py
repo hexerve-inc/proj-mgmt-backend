@@ -1,6 +1,6 @@
 import uuid
 import enum
-from sqlalchemy import Column, String, Enum, ForeignKey, Integer, Date, Table, Boolean
+from sqlalchemy import Column, String, Enum, ForeignKey, Integer, Date, Table, Boolean, Numeric
 from sqlalchemy.orm import relationship
 from core.database import Base
 from models.soft_delete_mixin import SoftDeleteMixin
@@ -36,6 +36,15 @@ class Task(SoftDeleteMixin, Base):
     due_date = Column(Date, nullable=True)
     is_milestone = Column(Boolean, default=False, nullable=False)
     task_type = Column(String, default="task", nullable=False)
+
+    # Lead specific fields (nullable for backwards compatibility)
+    lead_source = Column(String, nullable=True)
+    lead_temperature = Column(String, nullable=True)
+    lead_score = Column(Integer, nullable=True)
+    deal_value = Column(Numeric(12, 2), nullable=True)
+    deal_probability = Column(Integer, nullable=True)
+    last_contact_date = Column(Date, nullable=True)
+    next_followup_date = Column(Date, nullable=True)
     parent_id = Column(String, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=True)
     parent = relationship("Task", remote_side=[id], back_populates="subtasks")
     subtasks = relationship("Task", back_populates="parent", cascade="all, delete-orphan")

@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 from pydantic import BaseModel
 from typing import Optional
 from models.task import Priority
@@ -22,6 +23,15 @@ class TaskBase(BaseModel):
     is_milestone: Optional[bool] = False
     task_type: Optional[str] = "task"
     parent_id: Optional[str] = None
+    
+    # Lead specific fields
+    lead_source: Optional[str] = None
+    lead_temperature: Optional[str] = None
+    lead_score: Optional[int] = None
+    deal_value: Optional[Decimal] = None
+    deal_probability: Optional[int] = None
+    last_contact_date: Optional[date] = None
+    next_followup_date: Optional[date] = None
 
 
 class TaskCreate(TaskBase):
@@ -46,6 +56,15 @@ class TaskUpdate(BaseModel):
     is_milestone: Optional[bool] = None
     task_type: Optional[str] = None
     parent_id: Optional[str] = None
+    
+    # Lead specific fields
+    lead_source: Optional[str] = None
+    lead_temperature: Optional[str] = None
+    lead_score: Optional[int] = None
+    deal_value: Optional[Decimal] = None
+    deal_probability: Optional[int] = None
+    last_contact_date: Optional[date] = None
+    next_followup_date: Optional[date] = None
 
 
 class TaskResponse(BaseModel):
@@ -73,6 +92,15 @@ class TaskResponse(BaseModel):
     watcher_count: Optional[int] = 0
     is_watching: Optional[bool] = False
     watchers: list[UserResponse] = []
+
+    # Lead specific fields
+    lead_source: Optional[str] = None
+    lead_temperature: Optional[str] = None
+    lead_score: Optional[int] = None
+    deal_value: Optional[Decimal] = None
+    deal_probability: Optional[int] = None
+    last_contact_date: Optional[date] = None
+    next_followup_date: Optional[date] = None
 
     class Config:
         from_attributes = True
