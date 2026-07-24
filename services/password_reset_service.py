@@ -8,6 +8,7 @@ from services.auth_service import AuthService
 from services.email_transport import EmailTransport
 from services.email_templates import EmailTemplateEngine
 from core.security import validate_password_strength
+from core.config import settings
 
 class PasswordResetService:
     def __init__(self, db: Session):
@@ -40,7 +41,7 @@ class PasswordResetService:
     async def _send_reset_email(self, user: User, raw_token: str) -> None:
         context = {
             "user_name": user.name,
-            "reset_url": f"{self.template_engine._env.globals.get('frontend_url', 'http://localhost:3000')}/reset-password?token={raw_token}",
+            "reset_url": f"{settings.FRONTEND_URL}/reset-password?token={raw_token}",
             "expiry_minutes": 15
         }
         

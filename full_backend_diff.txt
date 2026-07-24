@@ -1,0 +1,448 @@
+﻿diff --git a/api/main.py b/api/main.py
+index 4e1a052..5a53f0c 100644
+--- a/api/main.py
++++ b/api/main.py
+@@ -1,5 +1,5 @@
+ from fastapi import APIRouter
+-from api.routes import projects, tasks, teams, clients, programs, time_entries, invoices, auth, users, portfolios, sprints, workflow_statuses, custom_filters, notifications, task_attachments, roles, email_config, analytics
++from api.routes import projects, tasks, teams, clients, programs, time_entries, invoices, auth, users, portfolios, sprints, workflow_statuses, custom_filters, notifications, task_attachments, roles, email_config, analytics, template_statuses
+ 
+ api_router = APIRouter()
+ 
+@@ -11,6 +11,7 @@ api_router.include_router(analytics.router, prefix="/analytics", tags=["analytic
+ 
+ api_router.include_router(projects.router, prefix="/projects", tags=["projects"])
+ api_router.include_router(workflow_statuses.router, prefix="/projects", tags=["workflow_statuses"])
++api_router.include_router(template_statuses.router, prefix="/templates", tags=["template_statuses"])
+ api_router.include_router(tasks.router, prefix="/tasks", tags=["tasks"])
+ api_router.include_router(teams.router, prefix="/teams", tags=["teams"])
+ api_router.include_router(clients.router, prefix="/clients", tags=["clients"])
+diff --git a/main.py b/main.py
+index 45101ea..9a989a4 100644
+--- a/main.py
++++ b/main.py
+@@ -45,13 +45,39 @@ async def lifespan(app: FastAPI):
+ # Initialize FastAPI with the lifespan handler
+ app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
+  
++ALLOWED_ORIGINS = [
++    "http://localhost:3000",
++    "https://proj-mgmt-fe-two.vercel.app"
++]
++
+ app.add_middleware(
+     CORSMiddleware,
+-    allow_origins=["*"],
++    allow_origins=ALLOWED_ORIGINS,
+     allow_credentials=True,
+     allow_methods=["*"],
+     allow_headers=["*"],
+ )
++
++from fastapi.responses import JSONResponse
++from starlette.requests import Request
++import traceback
++
++@app.exception_handler(Exception)
++async def global_exception_handler(request: Request, exc: Exception):
++    """Ensure CORS headers are present even on unhandled 500 errors."""
++    print("Unhandled exception:", exc)
++    traceback.print_exc()
++    origin = request.headers.get("origin")
++    headers = {}
++    if origin in ALLOWED_ORIGINS:
++        headers["Access-Control-Allow-Origin"] = origin
++        headers["Access-Control-Allow-Credentials"] = "true"
++        
++    return JSONResponse(
++        status_code=500,
++        content={"detail": "Internal server error"},
++        headers=headers
++    )
+  
+ # Connect API Router with v1 prefix
+ app.include_router(api_router, prefix="/api/v1")
+diff --git a/models/__init__.py b/models/__init__.py
+index bdb85af..f2d7af9 100644
+--- a/models/__init__.py
++++ b/models/__init__.py
+@@ -24,3 +24,4 @@ from .user_role import UserRole
+ from .role_audit_log import RoleAuditLog
+ from .email_configuration import EmailConfiguration
+ from .password_reset_token import PasswordResetToken
++from .template_status import TemplateStatus
+diff --git a/models/project.py b/models/project.py
+index f72ac53..d419320 100644
+--- a/models/project.py
++++ b/models/project.py
+@@ -23,6 +23,7 @@ class Project(SoftDeleteMixin, Base):
+     client_id = Column(String, ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
+     program_id = Column(String, ForeignKey("programs.id", ondelete="SET NULL"), nullable=True)
+     created_by_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
++    template_id = Column(String(50), nullable=True, index=True)
+     start_date = Column(Date, nullable=True)
+     end_date = Column(Date, nullable=True)
+     progress = Column(Integer, default=0)
+diff --git a/models/task.py b/models/task.py
+index 5697ce7..300b01a 100644
+--- a/models/task.py
++++ b/models/task.py
+@@ -1,6 +1,6 @@
+ import uuid
+ import enum
+-from sqlalchemy import Column, String, Enum, ForeignKey, Integer, Date, Table, Boolean
++from sqlalchemy import Column, String, Enum, ForeignKey, Integer, Date, Table, Boolean, Numeric
+ from sqlalchemy.orm import relationship
+ from core.database import Base
+ from models.soft_delete_mixin import SoftDeleteMixin
+@@ -36,6 +36,15 @@ class Task(SoftDeleteMixin, Base):
+     due_date = Column(Date, nullable=True)
+     is_milestone = Column(Boolean, default=False, nullable=False)
+     task_type = Column(String, default="task", nullable=False)
++
++    # Lead specific fields (nullable for backwards compatibility)
++    lead_source = Column(String, nullable=True)
++    lead_temperature = Column(String, nullable=True)
++    lead_score = Column(Integer, nullable=True)
++    deal_value = Column(Numeric(12, 2), nullable=True)
++    deal_probability = Column(Integer, nullable=True)
++    last_contact_date = Column(Date, nullable=True)
++    next_followup_date = Column(Date, nullable=True)
+     parent_id = Column(String, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=True)
+     parent = relationship("Task", remote_side=[id], back_populates="subtasks")
+     subtasks = relationship("Task", back_populates="parent", cascade="all, delete-orphan")
+diff --git a/models/workflow_status.py b/models/workflow_status.py
+index b7737c8..ce0329f 100644
+--- a/models/workflow_status.py
++++ b/models/workflow_status.py
+@@ -54,6 +54,11 @@ class WorkflowStatus(SoftDeleteMixin, Base):
+     icon = Column(String(50), nullable=True)
+     position = Column(Integer, default=0, nullable=False)
+     is_default = Column(Boolean, default=False, nullable=False)
++    template_status_id = Column(
++        String,
++        ForeignKey("template_statuses.id", ondelete="SET NULL"),
++        nullable=True,
++    )
+     # created_at, updated_at, deleted_at inherited from SoftDeleteMixin
+ 
+     # ΓöÇΓöÇ Constraints ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+diff --git a/schemas/project.py b/schemas/project.py
+index 63e4b5e..c51c6f0 100644
+--- a/schemas/project.py
++++ b/schemas/project.py
+@@ -1,5 +1,5 @@
+ from datetime import date
+-from pydantic import AliasChoices, BaseModel, Field
++from pydantic import AliasChoices, BaseModel, Field, field_validator
+ from typing import Optional
+ from models.project import ProjectStatus
+ 
+@@ -16,11 +16,24 @@ class ProjectBase(BaseModel):
+     team_id: Optional[str] = None
+     program_id: Optional[str] = None
+ 
++    @field_validator("status", mode="before")
++    def map_status(cls, v):
++        if isinstance(v, str):
++            v_upper = v.upper().replace("-", "_")
++            if v_upper in [e.value for e in ProjectStatus]:
++                return v_upper
++            if v_upper == "CANCELLED":
++                return ProjectStatus.COMPLETED.value # Map cancelled to completed for backend
++        return v
++
+ class ProjectCreate(ProjectBase):
+     project_key: Optional[str] = Field(
+         default=None,
+         validation_alias=AliasChoices("project_key", "key"),
+     )
++    template_id: Optional[str] = None
++    custom_statuses: Optional[list[dict]] = None
++
+ 
+ class ProjectUpdate(BaseModel):
+     name: Optional[str] = None
+@@ -39,10 +52,21 @@ class ProjectUpdate(BaseModel):
+     team_id: Optional[str] = None
+     program_id: Optional[str] = None
+ 
++    @field_validator("status", mode="before")
++    def map_status(cls, v):
++        if isinstance(v, str):
++            v_upper = v.upper().replace("-", "_")
++            if v_upper in [e.value for e in ProjectStatus]:
++                return v_upper
++            if v_upper == "CANCELLED":
++                return ProjectStatus.COMPLETED.value
++        return v
++
+ class ProjectResponse(ProjectBase):
+     id: str
+     project_key: str
+     task_count: int
++    template_id: Optional[str] = None
+ 
+     class Config:
+         from_attributes = True
+diff --git a/schemas/task.py b/schemas/task.py
+index f50c2c5..b35bf28 100644
+--- a/schemas/task.py
++++ b/schemas/task.py
+@@ -1,4 +1,5 @@
+ from datetime import date
++from decimal import Decimal
+ from pydantic import BaseModel
+ from typing import Optional
+ from models.task import Priority
+@@ -22,6 +23,15 @@ class TaskBase(BaseModel):
+     is_milestone: Optional[bool] = False
+     task_type: Optional[str] = "task"
+     parent_id: Optional[str] = None
++    
++    # Lead specific fields
++    lead_source: Optional[str] = None
++    lead_temperature: Optional[str] = None
++    lead_score: Optional[int] = None
++    deal_value: Optional[Decimal] = None
++    deal_probability: Optional[int] = None
++    last_contact_date: Optional[date] = None
++    next_followup_date: Optional[date] = None
+ 
+ 
+ class TaskCreate(TaskBase):
+@@ -46,6 +56,15 @@ class TaskUpdate(BaseModel):
+     is_milestone: Optional[bool] = None
+     task_type: Optional[str] = None
+     parent_id: Optional[str] = None
++    
++    # Lead specific fields
++    lead_source: Optional[str] = None
++    lead_temperature: Optional[str] = None
++    lead_score: Optional[int] = None
++    deal_value: Optional[Decimal] = None
++    deal_probability: Optional[int] = None
++    last_contact_date: Optional[date] = None
++    next_followup_date: Optional[date] = None
+ 
+ 
+ class TaskResponse(BaseModel):
+@@ -74,5 +93,14 @@ class TaskResponse(BaseModel):
+     is_watching: Optional[bool] = False
+     watchers: list[UserResponse] = []
+ 
++    # Lead specific fields
++    lead_source: Optional[str] = None
++    lead_temperature: Optional[str] = None
++    lead_score: Optional[int] = None
++    deal_value: Optional[Decimal] = None
++    deal_probability: Optional[int] = None
++    last_contact_date: Optional[date] = None
++    next_followup_date: Optional[date] = None
++
+     class Config:
+         from_attributes = True
+diff --git a/services/password_reset_service.py b/services/password_reset_service.py
+index 86b27c8..477463f 100644
+--- a/services/password_reset_service.py
++++ b/services/password_reset_service.py
+@@ -8,6 +8,7 @@ from services.auth_service import AuthService
+ from services.email_transport import EmailTransport
+ from services.email_templates import EmailTemplateEngine
+ from core.security import validate_password_strength
++from core.config import settings
+ 
+ class PasswordResetService:
+     def __init__(self, db: Session):
+@@ -40,7 +41,7 @@ class PasswordResetService:
+     async def _send_reset_email(self, user: User, raw_token: str) -> None:
+         context = {
+             "user_name": user.name,
+-            "reset_url": f"{self.template_engine._env.globals.get('frontend_url', 'http://localhost:3000')}/reset-password?token={raw_token}",
++            "reset_url": f"{settings.FRONTEND_URL}/reset-password?token={raw_token}",
+             "expiry_minutes": 15
+         }
+         
+diff --git a/services/project_service.py b/services/project_service.py
+index 73ce70d..1e31436 100644
+--- a/services/project_service.py
++++ b/services/project_service.py
+@@ -32,6 +32,12 @@ class ProjectService:
+             raise ValueError("Project key already exists. Please choose a different project key.")
+ 
+         project_payload = project_in.model_dump()
++        template_id = project_payload.get("template_id", "tpl-blank")
++        custom_statuses = project_payload.pop("custom_statuses", None)
++        
++        # Ensure the payload has the default template_id if it was None
++        project_payload["template_id"] = template_id
++        
+         project_payload["name"] = normalized_name
+         project_payload["project_key"] = normalized_key
+         project_payload["created_by_id"] = actor_id
+@@ -42,7 +48,7 @@ class ProjectService:
+         try:
+             self.db.flush()
+             ws_service = WorkflowStatusService(self.db)
+-            ws_service.seed_defaults(project.id)
++            ws_service.seed_defaults(project.id, template_id, custom_statuses=custom_statuses)
+             self.db.commit()
+         except IntegrityError:
+             self.db.rollback()
+@@ -55,10 +61,26 @@ class ProjectService:
+         return project
+ 
+     def get_projects(self) -> list[Project]:
+-        return self.db.query(Project).filter(Project.deleted_at.is_(None)).all()
++        from sqlalchemy.orm import joinedload
++        projects = self.db.query(Project).options(joinedload(Project.workflow_statuses)).filter(Project.deleted_at.is_(None)).all()
++        for p in projects:
++            p.template_id = 'tpl-blank'
++            for ws in p.workflow_statuses:
++                if ws.name in ["Lead In", "Waiting on Client"]: # Keeping Lead In for backwards compatibility with existing projects
++                    p.template_id = 'tpl-lead'
++                    break
++        return projects
+         
+     def get_project(self, project_id: str) -> Optional[Project]:
+-        return self.db.query(Project).filter(Project.id == project_id, Project.deleted_at.is_(None)).first()
++        from sqlalchemy.orm import joinedload
++        project = self.db.query(Project).options(joinedload(Project.workflow_statuses)).filter(Project.id == project_id, Project.deleted_at.is_(None)).first()
++        if project:
++            project.template_id = 'tpl-blank'
++            for ws in project.workflow_statuses:
++                if ws.name in ["Lead In", "Waiting on Client"]: # Keeping Lead In for backwards compatibility with existing projects
++                    project.template_id = 'tpl-lead'
++                    break
++        return project
+ 
+     def update_project(self, project_id: str, project_in: ProjectUpdate) -> Optional[Project]:
+         project = self.get_project(project_id)
+diff --git a/services/workflow_status_service.py b/services/workflow_status_service.py
+index cf8b789..20292ba 100644
+--- a/services/workflow_status_service.py
++++ b/services/workflow_status_service.py
+@@ -12,6 +12,7 @@ from schemas.workflow_status import (
+     WorkflowStatusUpdate,
+     WorkflowStatusReorderItem,
+ )
++from models.template_status import TemplateStatus
+ 
+ # Default statuses seeded for every new project
+ DEFAULT_STATUSES = [
+@@ -263,8 +264,13 @@ class WorkflowStatusService:
+ 
+     # ΓöÇΓöÇ Seed Defaults ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+ 
+-    def seed_defaults(self, project_id: str) -> list[WorkflowStatus]:
+-        """Create the four default statuses for a newly created project."""
++    def seed_defaults(
++        self,
++        project_id: str,
++        template_id: Optional[str] = None,
++        custom_statuses: Optional[list[dict]] = None,
++    ) -> list[WorkflowStatus]:
++        """Create the default statuses for a newly created project based on template or custom input."""
+         # Idempotency check: if project already has statuses, do not duplicate them.
+         existing_count = (
+             self.db.query(func.count(WorkflowStatus.id))
+@@ -274,19 +280,57 @@ class WorkflowStatusService:
+         if existing_count > 0:
+             return self.get_statuses(project_id)
+ 
++        statuses_to_create = []
++
++        if custom_statuses:
++            # User has provided a custom list of statuses from the "Select Your Statuses" modal
++            statuses_to_create = custom_statuses
++        elif template_id:
++            # Query the database for the template's default statuses
++            db_statuses = (
++                self.db.query(TemplateStatus)
++                .filter(
++                    TemplateStatus.template_id == template_id,
++                    TemplateStatus.deleted_at.is_(None)
++                )
++                .order_by(TemplateStatus.position)
++                .all()
++            )
++            if db_statuses:
++                for s in db_statuses:
++                    statuses_to_create.append({
++                        "name": s.name,
++                        "group_key": s.group_key,
++                        "color": s.color,
++                        "position": s.position,
++                        "is_default": s.is_default,
++                        "template_status_id": s.id,
++                    })
++
++        # Fallback to hardcoded DEFAULT_STATUSES if nothing was found
++        if not statuses_to_create:
++            statuses_to_create = DEFAULT_STATUSES
++
+         created = []
+-        for entry in DEFAULT_STATUSES:
++        for entry in statuses_to_create:
+             slug = self._slugify(entry["name"])
+             slug = self._ensure_unique_slug(project_id, slug)
++            
++            # Map string group_key to enum if necessary
++            group_key_val = entry["group_key"]
++            if isinstance(group_key_val, str):
++                group_key_val = WorkflowGroup(group_key_val)
++
+             status = WorkflowStatus(
+                 id=str(uuid.uuid4()),
+                 project_id=project_id,
+                 name=entry["name"],
+                 slug=slug,
+-                group_key=entry["group_key"],
+-                color=entry["color"],
+-                position=entry["position"],
+-                is_default=entry["is_default"],
++                group_key=group_key_val,
++                color=entry.get("color", "#6B7280"),
++                position=entry.get("position", 0),
++                is_default=entry.get("is_default", False),
++                template_status_id=entry.get("template_status_id"),
+             )
+             self.db.add(status)
+             created.append(status)
+diff --git a/test_watchers.py b/test_watchers.py
+deleted file mode 100644
+index a4fe3a2..0000000
+--- a/test_watchers.py
++++ /dev/null
+@@ -1,31 +0,0 @@
+-from core.database import SessionLocal
+-from services.task_watcher_service import TaskWatcherService
+-from api.routes.tasks import _enrich_tasks_with_watcher_data
+-from models.task import Task
+-from models.user import User
+-import traceback
+-from fastapi.encoders import jsonable_encoder
+-
+-def test():
+-    db = SessionLocal()
+-    try:
+-        tasks = db.query(Task).all()[:5]
+-        user = db.query(User).first()
+-        if not tasks:
+-            print("No tasks found")
+-            return
+-            
+-        print("Enriching tasks...")
+-        result = _enrich_tasks_with_watcher_data(tasks, db, user.id)
+-        print("Success enriching!")
+-        
+-        print("Testing jsonable_encoder...")
+-        json_res = jsonable_encoder(result)
+-        print("Success encoding!")
+-        
+-    except Exception as e:
+-        traceback.print_exc()
+-    finally:
+-        db.close()
+-
+-test()
