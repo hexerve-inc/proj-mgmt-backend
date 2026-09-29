@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Project Management API"
-    DATABASE_URL: str
+    DATABASE_URL: str = ""
     
     # External system API key for acessing Users API Endpoints
     EXTERNAL_API_KEY: str = ""
@@ -29,5 +29,6 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 settings = Settings()

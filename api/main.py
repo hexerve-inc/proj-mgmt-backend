@@ -26,5 +26,7 @@ api_router.include_router(notifications.router, prefix="/users", tags=["notifica
 api_router.include_router(task_attachments.router, tags=["task-attachments"])
 api_router.include_router(roles.router, tags=["roles"])
 api_router.include_router(email_config.router, prefix="/settings", tags=["email-config"])
+from api.routes import debug
+api_router.include_router(debug.router, tags=["debug"])
 
 
