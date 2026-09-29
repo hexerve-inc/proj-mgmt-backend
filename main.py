@@ -38,14 +38,6 @@ def run_migrations():
     if database_url.startswith("postgres://"):
         print("[MIGRATIONS] Normalizing 'postgres://' to 'postgresql://' for Alembic", flush=True)
         database_url = database_url.replace("postgres://", "postgresql://", 1)
-    
-    try:
-        import psycopg  # noqa: F401
-    except ImportError:
-        if database_url.startswith("postgresql://") and not database_url.startswith("postgresql+"):
-            database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
-        elif database_url.startswith("postgresql+psycopg://"):
-            database_url = database_url.replace("postgresql+psycopg://", "postgresql+psycopg2://", 1)
         
     print(f"[MIGRATIONS] Using DATABASE_URL: {repr(database_url)}", flush=True)
     if database_url:

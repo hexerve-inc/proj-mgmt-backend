@@ -36,21 +36,9 @@ target_metadata = Base.metadata
 
 
 def _clean_url(u: str) -> str:
-    if not u:
-        return ""
-    url = u.strip()
-    if url.startswith("postgres://"):
-        url = url.replace("postgres://", "postgresql://", 1)
-    
-    # Check if psycopg (psycopg3) is installed; if not, fallback to psycopg2
-    try:
-        import psycopg  # noqa: F401
-    except ImportError:
-        if url.startswith("postgresql://") and not url.startswith("postgresql+"):
-            url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
-        elif url.startswith("postgresql+psycopg://"):
-            url = url.replace("postgresql+psycopg://", "postgresql+psycopg2://", 1)
-    return url
+    if u and u.startswith("postgres://"):
+        return u.replace("postgres://", "postgresql://", 1)
+    return u or ""
 
 
 def run_migrations_offline() -> None:

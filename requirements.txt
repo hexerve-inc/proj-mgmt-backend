@@ -4,7 +4,6 @@ sqlalchemy
 alembic
 pydantic
 pydantic-settings
-psycopg[binary]
 psycopg2-binary
 python-dotenv
 passlib[bcrypt]
@@ -15,3 +14,4 @@ email-validator
 aiosmtplib
 jinja2
 cloudinary
+python-multipart
