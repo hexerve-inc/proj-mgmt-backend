@@ -14,26 +14,33 @@ from api.main import api_router
  
 # Helper function to trigger Alembic migrations safely on Neon
 def run_migrations():
-    print("Initializing Neon database migration...")
+    print("Initializing Neon database migration...", flush=True)
     # Locate your alembic.ini file (assumed to be in your project root)
     ini_path = os.path.join(os.path.dirname(__file__), "alembic.ini")
     cfg = Config(ini_path)
     # Use the environment variable if available, otherwise fall back to settings
     database_url = os.getenv("DATABASE_URL") or settings.DATABASE_URL
     if database_url:
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+        if database_url.startswith("postgresql://") and not database_url.startswith("postgresql+"):
+            try:
+                import psycopg  # noqa: F401
+            except ImportError:
+                database_url = database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
         # Strip pooler flags if present, as Alembic needs a direct connection
         cfg.set_main_option("sqlalchemy.url", database_url)
     # Retry loop to handle Neon "waking up" from a cold start
     for attempt in range(3):
         try:
             command.upgrade(cfg, "head")
-            print("Database migration completed successfully!")
+            print("Database migration completed successfully!", flush=True)
             break
         except Exception as e:
-            print(f"Neon compute waking up, retrying... (Attempt {attempt + 1}/3). Error: {e}")
+            print(f"Neon compute waking up, retrying... (Attempt {attempt + 1}/3). Error: {e}", flush=True)
             time.sleep(3)
     else:
-        print("Migration failed after multiple attempts.")
+        print("Migration failed after multiple attempts.", flush=True)
  
 # Lifespan context manager to handle startup tasks
 @asynccontextmanager

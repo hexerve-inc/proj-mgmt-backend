@@ -35,6 +35,20 @@ target_metadata = Base.metadata
 # ... etc.
 
 
+def _clean_url(u: str) -> str:
+    if not u:
+        return ""
+    url = u.strip()
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    if url.startswith("postgresql://") and not url.startswith("postgresql+"):
+        try:
+            import psycopg  # noqa: F401
+        except ImportError:
+            url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    return url
+
+
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
 
@@ -47,7 +61,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = settings.DATABASE_URL
+    url = _clean_url(config.get_main_option("sqlalchemy.url") or settings.DATABASE_URL or os.getenv("DATABASE_URL"))
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -67,7 +81,8 @@ def run_migrations_online() -> None:
 
     """
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = settings.DATABASE_URL
+    db_url = _clean_url(config.get_main_option("sqlalchemy.url") or settings.DATABASE_URL or os.getenv("DATABASE_URL"))
+    configuration["sqlalchemy.url"] = db_url
     connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
